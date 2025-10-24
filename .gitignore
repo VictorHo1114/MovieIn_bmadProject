@@ -1,0 +1,99 @@
+
+# ======================================
+# Node / Next.js (Frontend)
+# ======================================
+node_modules
+frontend/node_modules
+frontend/.next
+frontend/out
+frontend/.env.local
+frontend/.env.development
+frontend/.env.production
+frontend/.vercel
+frontend/.turbo
+frontend/.cache
+frontend/coverage
+
+# ======================================
+# Python / FastAPI (Backend)
+# ======================================
+backend/.venv
+backend/__pycache__/
+backend/.pytest_cache/
+backend/.env
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/*.log
+backend/.mypy_cache/
+backend/.ruff_cache/
+
+
+# 忽略所有 BMAD 相關目錄與檔案
+/bmad*/
+/.bmad*/
+/bmad-core/
+/.bmad-core/
+/web-bundles/
+/expansion-packs/
+.bmad/
+.bmad-core/
+.bmad-infrastructure-devops/
+bmad/
+bmad-core/
+bmad-method/
+bmad-tools/
+
+# 常見暫存
+*.tmp
+*.log
+
+
+# ======================================
+# 系統 / IDE / 環境
+# ======================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# ======================================
+# 測試 / 打包 / 部署
+# ======================================
+/coverage
+/build
+/dist
+/out
+*.tsbuildinfo
+next-env.d.ts
+
+# ======================================
+# Vercel / 部署設定
+# ======================================
+.vercel
+
+# ======================================
+# 憑證 / 密鑰 / 機密
+# ======================================
+*.pem
+*.key
+*.crt
+.env*
+.envrc
+
+# ======================================
+# 調試 / 暫存 / 錯誤記錄
+# ======================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# GitHub / ChatModes / Local Config
+# ======================================
+.github/chatmodes/
+.github/*.chatmode.md
