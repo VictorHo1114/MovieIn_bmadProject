@@ -97,3 +97,8 @@ yarn-error.log*
 # ======================================
 .github/chatmodes/
 .github/*.chatmode.md
+
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+*.pyo
