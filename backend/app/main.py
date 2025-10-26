@@ -1,32 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import os
+from app.routers.home import router as home_router
+from app.routers.profile import router as profile_router
+from app.routers.search import router as search_router
 
-app = FastAPI(title="BMAD_PROJECT API", version="0.1.0")
-
-# Allow frontend requests
-allowed_origins = os.getenv(
-    "ALLOWED_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000"
-).split(",")
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
 
-@app.get("/api/health")
-def health():
-    return {"status": "ok"}
-
-class SearchIntent(BaseModel):
-    keyword: str
-    year: int | None = None
-
-@app.post("/api/search")
-def search_movies(intent: SearchIntent):
-    return {"echo": intent.model_dump(), "results": []}
+# 掛載各 router
+app.include_router(home_router, prefix="/home", tags=["home"])
+app.include_router(profile_router, prefix="/profile", tags=["profile"])
+app.include_router(search_router, prefix="/search", tags=["search"])
