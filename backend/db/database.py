@@ -17,4 +17,4 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Base 給 model 繼承
-Base = declarative_base()
+#Base = declarative_base()
