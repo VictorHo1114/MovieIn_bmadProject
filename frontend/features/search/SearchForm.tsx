@@ -50,14 +50,15 @@ export default function SearchForm() {
 
   return (
     <div>
-      <form onSubmit={onSubmit} className="flex gap-2 items-center mb-4">
-        <input
-          aria-label="Search movies"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search movies, e.g. Titanic"
-          className="flex-1 rounded px-3 py-2 bg-white text-black border border-gray-300 placeholder:opacity-60"
-        />
+      <div className="max-w-2xl mx-auto mb-6">
+        <form onSubmit={onSubmit} className="flex gap-2 items-center mb-4">
+          <input
+            aria-label="Search movies"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search movies, e.g. Titanic"
+            className="flex-1 rounded px-3 py-2 bg-white text-black border border-gray-300 placeholder:opacity-60"
+          />
         <button
           type="submit"
           className="px-3 py-2 bg-sky-500 hover:bg-sky-600 rounded text-white"
@@ -66,28 +67,50 @@ export default function SearchForm() {
           {loading ? 'Searching...' : 'Search'}
         </button>
       </form>
+      </div>
 
       {error && <div className="text-red-400 mb-2">Error: {error}</div>}
 
       {result && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mt-6">
           {result.items.map((m) => {
-            const img = m.poster_url ?? (m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null)
+            const img = m.poster_url ?? (m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null)
             return (
-              <article key={m.id} className="border rounded p-3 bg-white/5 flex flex-col group hover:bg-white/10 transition-colors cursor-pointer">
-                <a href={`/movie/${m.id}`} className="flex flex-col flex-1">
-                  {img ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={img} alt={m.title} className="w-full h-44 object-cover rounded mb-2 group-hover:opacity-80 transition-opacity" />
-                  ) : (
-                    <div className="w-full h-44 bg-gray-200 mb-2 rounded flex items-center justify-center text-sm text-gray-500">No image</div>
-                  )}
-                  <div className="text-sm opacity-70">{m.year}</div>
-                  <div className="font-semibold group-hover:text-sky-400 transition-colors">{m.title}</div>
-                  <div className="text-xs opacity-70">⭐ {m.rating ?? 'N/A'}</div>
-                  {m.overview && <p className="text-sm opacity-70 mt-2 line-clamp-3">{m.overview}</p>}
-                </a>
-              </article>
+              <a key={m.id} href={`/movie/${m.id}`} className="group">
+                <article className="bg-gray-800 rounded-2xl overflow-hidden shadow-xl hover:shadow-yellow-400/40 transition-all duration-300 hover:-translate-y-1 border border-gray-700">
+                  <div className="relative aspect-[2/3]">
+                    {img ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img 
+                        src={img} 
+                        alt={m.title} 
+                        className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" 
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-700 flex items-center justify-center text-base text-gray-300">
+                        無海報
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2 px-2 py-1 bg-yellow-400 text-gray-900 text-sm font-bold rounded shadow">
+                      ⭐ {m.rating ?? 'N/A'}
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h2 className="font-bold text-lg mb-2 text-white group-hover:text-yellow-300 transition-colors line-clamp-1">
+                      {m.title}
+                    </h2>
+                    <div className="text-sm text-gray-300 mb-2">
+                      {m.year}
+                    </div>
+                    {m.overview && (
+                      <p className="text-sm text-gray-200 line-clamp-3">
+                        {m.overview}
+                      </p>
+                    )}
+                  </div>
+                </article>
+              </a>
             )
           })}
         </div>
