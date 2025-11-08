@@ -60,17 +60,19 @@ export default function SearchForm() {
           {result.items.map((m) => {
             const img = m.poster_url ?? (m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null)
             return (
-              <article key={m.id} className="border rounded p-3 bg-white/5 flex flex-col">
-                {img ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={img} alt={m.title} className="w-full h-44 object-cover rounded mb-2" />
-                ) : (
-                  <div className="w-full h-44 bg-gray-200 mb-2 rounded flex items-center justify-center text-sm text-gray-500">No image</div>
-                )}
-                <div className="text-sm opacity-70">{m.year}</div>
-                <div className="font-semibold">{m.title}</div>
-                <div className="text-xs opacity-70">⭐ {m.rating ?? 'N/A'}</div>
-                {m.overview && <p className="text-sm opacity-70 mt-2 line-clamp-3">{m.overview}</p>}
+              <article key={m.id} className="border rounded p-3 bg-white/5 flex flex-col group hover:bg-white/10 transition-colors cursor-pointer">
+                <a href={`/movie/${m.id}`} className="flex flex-col flex-1">
+                  {img ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={img} alt={m.title} className="w-full h-44 object-cover rounded mb-2 group-hover:opacity-80 transition-opacity" />
+                  ) : (
+                    <div className="w-full h-44 bg-gray-200 mb-2 rounded flex items-center justify-center text-sm text-gray-500">No image</div>
+                  )}
+                  <div className="text-sm opacity-70">{m.year}</div>
+                  <div className="font-semibold group-hover:text-sky-400 transition-colors">{m.title}</div>
+                  <div className="text-xs opacity-70">⭐ {m.rating ?? 'N/A'}</div>
+                  {m.overview && <p className="text-sm opacity-70 mt-2 line-clamp-3">{m.overview}</p>}
+                </a>
               </article>
             )
           })}

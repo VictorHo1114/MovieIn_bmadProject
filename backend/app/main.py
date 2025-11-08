@@ -17,6 +17,8 @@ app.add_middleware(
 app.include_router(home_router, prefix="/home", tags=["home"])
 app.include_router(profile_router, prefix="/profile", tags=["profile"])
 app.include_router(search_router, prefix="/search", tags=["search"])
+from app.routers.movie import router as movie_router
+app.include_router(movie_router, prefix="/movie", tags=["movie"])
 
 #測試有沒有連到Neon
 @app.get("/db-test")
