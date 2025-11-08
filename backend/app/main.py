@@ -19,6 +19,8 @@ app.include_router(profile_router, prefix="/profile", tags=["profile"])
 app.include_router(search_router, prefix="/search", tags=["search"])
 from app.routers.movie import router as movie_router
 app.include_router(movie_router, prefix="/movie", tags=["movie"])
+from app.routers.popular import router as popular_router
+app.include_router(popular_router)
 
 #測試有沒有連到Neon
 @app.get("/db-test")

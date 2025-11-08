@@ -18,7 +18,8 @@ export default function NavBar() {
         <Link href="/" className={linkCls('/')}>Home</Link>
         <Link href="/profile" className={linkCls('/profile')}>Profile</Link>
         <Link href="/search" className={linkCls('/search')}>Search</Link>
-      </nav>
-    </header>
-  );
+          <Link href="/popular" className={linkCls('/popular')}>熱門</Link>
+        </nav>
+      </header>
+      );
 }
