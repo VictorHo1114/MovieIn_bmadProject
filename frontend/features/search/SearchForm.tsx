@@ -1,13 +1,26 @@
 'use client'
-import { useState } from 'react'
+
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { API_BASE } from '@/lib/config'
 import type { SearchResult } from '@/lib/types'
 
 export default function SearchForm() {
-  const [q, setQ] = useState('')
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialQuery = searchParams.get('q') || ''
+  
+  const [q, setQ] = useState(initialQuery)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<SearchResult | null>(null)
+
+  // 當 URL 中的查詢參數改變時，更新搜尋結果
+  useEffect(() => {
+    if (initialQuery) {
+      doSearch(initialQuery)
+    }
+  }, [initialQuery])
 
   async function doSearch(query: string) {
     if (!query) {
@@ -31,7 +44,8 @@ export default function SearchForm() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    await doSearch(q)
+    // 更新 URL，保持搜尋狀態
+    router.push(`/search?q=${encodeURIComponent(q)}`)
   }
 
   return (
