@@ -1,7 +1,12 @@
 // app/search/page.tsx
-import { searchMovies } from "@/features/search/services";
-export default async function Page({ searchParams }: { searchParams: { q?: string } }) {
-  const q = searchParams.q ?? "";
-  const data = q ? await searchMovies(q) : { items: [] };
-  return <pre>{JSON.stringify(data, null, 2)}</pre>;
+import SearchForm from "@/features/search/SearchForm";
+
+export default function Page() {
+  return (
+    <div className="py-6">
+      <h1 className="text-2xl font-bold mb-3">Search</h1>
+      <SearchForm />
+      <div className="text-sm opacity-70 mt-3">Use the form above to search movies (results shown below the form).</div>
+    </div>
+  )
 }
