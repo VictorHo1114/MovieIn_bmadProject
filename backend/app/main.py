@@ -5,6 +5,7 @@ from app.routers.profile import router as profile_router
 from app.routers.search import router as search_router
 from db.database import engine
 from sqlalchemy import text
+from app.routers import simple_recommend_router  # V2 Hybrid Recommendation API
 
 app = FastAPI()
 
@@ -17,6 +18,7 @@ app.add_middleware(
 app.include_router(home_router, prefix="/home", tags=["home"])
 app.include_router(profile_router, prefix="/profile", tags=["profile"])
 app.include_router(search_router, prefix="/search", tags=["search"])
+app.include_router(simple_recommend_router.router)  # V2 Hybrid API ⭐
 
 #測試有沒有連到Neon
 @app.get("/db-test")

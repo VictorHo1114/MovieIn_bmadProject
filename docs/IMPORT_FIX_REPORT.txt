@@ -1,0 +1,73 @@
+﻿========================================================================
+ Embedding Service Import 修復完成
+========================================================================
+
+修復內容:
+----------
+在 simple_recommend.py 檔案頂部添加了 import:
+
+from app.services.embedding_service import rerank_by_semantic_similarity
+
+修復位置:
+----------
+檔案: app/services/simple_recommend.py
+行數: Line 13（與其他 imports 一起）
+
+原因:
+----------
+- recommend_movies_hybrid() 函數中調用了 rerank_by_semantic_similarity
+- 之前只有條件 import（在 try-except 內部）
+- 現在改為全局 import，確保兩個函數都能正常使用
+
+驗證結果:
+----------
+ 無編譯錯誤
+ Import 路徑正確
+ embedding_service.py 包含所需函數:
+   - rerank_by_semantic_similarity()
+   - get_embedding()
+   - cosine_similarity()
+   - store_movie_embedding()
+
+可用函數簽名:
+----------
+def rerank_by_semantic_similarity(
+    query_text: str,
+    candidate_movies: List[Dict[str, Any]],
+    db_session: Session,
+    top_k: int = 10,
+    diversity_weight: float = 0.3,
+    boost_exact_matches: bool = False,
+    boost_keyword_matches: bool = False,  # 新增參數
+    randomness: float = 0.3                 # 新增參數
+) -> List[Dict[str, Any]]
+
+功能:
+-  計算查詢 embedding
+-  取得電影 embeddings（從資料庫或即時計算）
+-  計算 cosine similarity
+-  MMR 多樣性過濾
+-  支援精確匹配加權（boost_exact_matches）
+-  支援關鍵詞匹配加權（boost_keyword_matches）
+-  支援隨機性參數（randomness）
+
+現在可以使用:
+----------
+1. recommend_movies_hybrid() - 智能混合推薦（方案 B）
+   - 自動判斷使用 Feature 或 Embedding
+   - 完整 Terminal 日誌輸出
+   - 可調閾值實驗
+
+2. recommend_movies_simple() - 原始 Embedding 推薦（方案 C）
+   - 每次都用 Embedding
+   - 保留作為對照組
+
+下一步:
+----------
+1.  Embedding Service Import - 已完成
+2.  測試智能混合推薦功能
+3.  修改 API 路由使用新函數
+4.  前端整合測試
+5.  閾值實驗與優化
+
+========================================================================

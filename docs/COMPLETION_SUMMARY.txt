@@ -1,0 +1,77 @@
+﻿"""
+ 資料庫填充完成總結
+
+ 完成項目：
+- Keywords: 644/667 部 (96.6%)
+- Mood Tags: 667/667 部 (100%)
+- 總計：667 部電影，資料完整！
+
+ 資料統計：
+- 平均每部電影: 15-20 個 keywords
+- 平均每部電影: 5 個 mood_tags
+- 資料庫大小增加: ~0.22 MB
+- Neon 使用率: < 0.1% (完全安全)
+
+ 成本：
+- TMDB API: 免費
+- GPT-4o-mini: ~$0.07 (約 2 台幣)
+
+  時間：
+- 開始: Batch 1/34
+- 完成: Batch 34/34
+- 總時間: ~40 分鐘
+
+ 下一步：實施智能混合推薦（方案 B）
+
+方案 B 架構：
+===========================================
+def recommend_movies_hybrid(user_input, moods, db):
+    # 1. Feature Extraction
+    keywords = extract_keywords(user_input)
+    mood_tags = extract_mood_tags(moods)
+    
+    # 2. SQL Feature Matching
+    candidates = sql_feature_matching(keywords, mood_tags, ...)
+    
+    # 3. 智能判斷是否需要 Embedding
+    if should_use_embedding(user_input, keywords, candidates):
+        # 抽象查詢  使用 Embedding
+        print("[Hybrid] 啟用 Embedding 語義匹配")
+        return embedding_rerank(candidates)
+    else:
+        # 明確查詢  純 Feature
+        print("[Hybrid] 使用 Feature Matching")
+        return diversity_filter(candidates)
+
+def should_use_embedding(user_input, keywords, candidates):
+    \"\"\"判斷是否需要 Embedding\"\"\"
+    # 條件 1: 無明確 keywords
+    if len(keywords) == 0:
+        return True
+    
+    # 條件 2: 包含情境/抽象詞
+    abstract_words = ["療癒", "治癒", "氛圍", "適合", "心情"]
+    if any(w in user_input for w in abstract_words):
+        return True
+    
+    # 條件 3: Feature 匹配分數太低
+    if candidates and candidates[0].get("feature_score", 0) < 15:
+        return True
+    
+    # 條件 4: 候選太少
+    if len(candidates) < 20:
+        return True
+    
+    return False
+
+觸發 Embedding 的範例：
+- "失戀療癒"  無 keywords + 有"療癒"  啟用
+- "下雨天沙發"  無 keywords + 情境詞  啟用
+- "超級英雄"  有 keyword[superhero]  不啟用
+
+預期效果：
+- 80% 查詢用 Feature (快速、便宜)
+- 20% 查詢用 Embedding (語義理解)
+- 成本降低 80%，品質保持
+===========================================
+

@@ -1,0 +1,65 @@
+{
+  "title": "MovieIntent",
+  "type": "object",
+  "required": ["feature_labels"],
+  "properties": {
+    "feature_labels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "comforting","mind_bending","award_winner","family","romance",
+          "thriller","feel_good","based_on_true_story","asian_cinema","classic"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 5
+    },
+    "must_not_labels": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 0,
+      "maxItems": 5
+    },
+    "natural_query": {
+      "type": "string",
+      "minLength": 0,
+      "maxLength": 160,
+      "description": "使用者自由輸入的補充敘述（短句）"
+    },
+    "constraints": {
+      "type": "object",
+      "properties": {
+        "genres": { 
+          "type": "array", 
+          "items": { "type": "string", "minLength": 1, "maxLength": 40 }, 
+          "maxItems": 10 
+        },
+        "year_range": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "minItems": 2, "maxItems": 2
+        },
+        "languages": { "type": "array", "items": { "type": "string", "minLength": 2, "maxLength": 5 }, "maxItems": 5 },
+        "country":   { "type": "string", "minLength": 2, "maxLength": 2 },
+        "must_have_providers": { "type": "array", "items": { "type": "string", "minLength": 2, "maxLength": 40 }, "maxItems": 5 },
+        "runtime_range": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 },
+        "vote_average_min": { "type": "number", "minimum": 0, "maximum": 10 },
+        "vote_count_min":   { "type": "integer", "minimum": 0, "maximum": 500000 },
+        "include_keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 50 },
+          "maxItems": 10
+        },
+        "exclude_keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 50 },
+          "maxItems": 10
+        }
+      },
+      "additionalProperties": false
+    },
+    "locale": { "type": "string", "minLength": 2, "maxLength": 5 }
+  },
+  "additionalProperties": false
+}
