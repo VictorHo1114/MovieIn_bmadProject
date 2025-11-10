@@ -1,2 +1,2 @@
-export type MovieCard = { id: string; title: string; year: number; rating: number; };
+export type MovieCard = { id: string; title: string; year?: number | null; rating?: number | null; poster_path?: string | null; poster_url?: string | null; overview?: string | null };
 export type HomeFeed = { trending: MovieCard[]; };

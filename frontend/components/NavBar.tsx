@@ -179,7 +179,8 @@ export default function NavBar() {
             )}
           </li>
         </div>
-      </nav>
-    </header>
-  );
+          <Link href="/popular" className={linkCls('/popular')}>熱門</Link>
+        </nav>
+      </header>
+      );
 }

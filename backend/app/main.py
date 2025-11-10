@@ -42,6 +42,10 @@ app.include_router(profile_api_router, prefix=API_PREFIX, tags=["Profile"]) # [�
 app.include_router(home_router, prefix=f"{API_PREFIX}/home", tags=["home"])
 # app.include_router(profile_page_router, prefix=f"{API_PREFIX}/profile", tags=["profile_page"]) 
 app.include_router(search_router, prefix=f"{API_PREFIX}/search", tags=["search"])
+from app.routers.movie import router as movie_router
+app.include_router(movie_router, prefix="/movie", tags=["movie"])
+from app.routers.popular import router as popular_router
+app.include_router(popular_router)
 
 
 # --- 6. 你的測試路由 (保持不變) ---
