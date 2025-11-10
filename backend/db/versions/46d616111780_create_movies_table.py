@@ -1,7 +1,7 @@
 """create_movies_table
 
 Revision ID: 46d616111780
-Revises: 2a32558280a5
+Revises: f1f42a5897e2
 Create Date: 2025-11-08 01:05:58.379434
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '46d616111780'
-down_revision: Union[str, Sequence[str], None] = '2a32558280a5'
+down_revision: Union[str, Sequence[str], None] = 'f1f42a5897e2'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
