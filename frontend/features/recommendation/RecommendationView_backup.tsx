@@ -7,7 +7,23 @@ import { MoodOrbit } from "./MoodOrbit";
 import { FilterControls } from "./FilterControls";
 import { MovieCard } from "@/components/MovieCard";
 import { getSimpleRecommendations, type RecommendedMovie } from "./services";
-import "./styles/recommendation.css";
+
+// 🎨 控制面板位置配置
+// 視覺平衡原則：上下留白，左右豐富
+const CONTROL_PANEL_CONFIG = {
+  left: "530px",     // 距離左邊距離
+  top: "400px",      // 距離頂部距離
+  width: "180px",    // 面板寬度
+  gap: "40px"         // 年代與類型之間的間隔
+};
+
+// 🎨 文字輸入框位置配置
+const TEXTAREA_CONFIG = {
+  left: "480px",     // 距離左邊距離
+  top: "550px",      // 距離頂部距離
+  width: "280px",    // 輸入框寬度
+  height: "35px"     // 輸入框高度
+};
 
 export function RecommendationView() {
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
@@ -98,114 +114,78 @@ export function RecommendationView() {
       <div className="flex-1">
         {/* Header - Removed for immersive experience */}
 
-        {/* Main Section - BlackHole + Controls (響應式佈局) */}
-        <div className="relative z-10 min-h-[calc(100vh-80px)] flex items-center justify-center px-4 lg:px-0 py-8 lg:py-0">
+        {/* Main Section - BlackHole + MoodOrbit */}
+        <div className="relative flex justify-center items-center z-10" 
+             style={{ 
+               height: 'calc(100vh - 80px)', 
+               maxHeight: 'calc(100vh - 80px)',
+               marginLeft: '-60px',  // 給左側控制板騰出空間
+               paddingLeft: '60px'   // 保持內容居中
+             }}>
+          {/* BlackHole Canvas - No animation wrapper */}
+          <BlackHoleCanvas onGenerate={handleGenerate} isLoading={isLoading} />
           
-          {/* Mobile: 垂直佈局 */}
-          <div className="flex flex-col items-center gap-8 lg:hidden w-full max-w-md">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="w-full flex flex-col gap-6"
-            >
-              <FilterControls
-                selectedEras={selectedEras}
-                selectedGenres={selectedGenres}
-                onErasChange={setSelectedEras}
-                onGenresChange={setSelectedGenres}
-                gap="24px"
-              />
-              
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.7 }}
-              >
-                <textarea
-                  value={queryText}
-                  onChange={(e) => setQueryText(e.target.value)}
-                  placeholder="例如：我想看一部溫馨感人的家庭電影..."
-                  className="w-full px-4 py-3 bg-black/80 border border-white/30 
-                           rounded-lg text-white placeholder-gray-500 text-sm
-                           focus:border-white/60 focus:outline-none focus:ring-1 focus:ring-white/40
-                           focus:shadow-[0_0_15px_rgba(255,255,255,0.3)]
-                           transition-all duration-200 resize-none backdrop-blur-sm"
-                  rows={2}
-                />
-              </motion.div>
-            </motion.div>
+          {/* Mood Orbit Labels - Fade in with delay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <MoodOrbit 
+              selectedMoods={selectedMoods} 
+              onMoodsChange={setSelectedMoods} 
+            />
+          </motion.div>
+
+          {/* Filter Controls - Configurable Position */}
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute z-20"
+            style={{
+              left: CONTROL_PANEL_CONFIG.left,
+              top: CONTROL_PANEL_CONFIG.top,
+              width: CONTROL_PANEL_CONFIG.width,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: CONTROL_PANEL_CONFIG.gap
+            }}
+          >
+            {/* Dropdowns */}
+            <FilterControls
+              selectedEras={selectedEras}
+              selectedGenres={selectedGenres}
+              onErasChange={setSelectedEras}
+              onGenresChange={setSelectedGenres}
+              gap={CONTROL_PANEL_CONFIG.gap}
+            />
+          </motion.div>
             
-            <div className="relative">
-              <BlackHoleCanvas onGenerate={handleGenerate} isLoading={isLoading} />
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0 pointer-events-none"
-              >
-                <MoodOrbit 
-                  selectedMoods={selectedMoods} 
-                  onMoodsChange={setSelectedMoods} 
-                />
-              </motion.div>
-            </div>
-          </div>
-
-          {/* Desktop: 置中黑洞，下方控制面板 */}
-          <div className="hidden lg:block relative">
-            {/* 黑洞 + Mood Orbit - 水平居中 */}
-            <div className="relative flex items-center justify-center">
-              <BlackHoleCanvas onGenerate={handleGenerate} isLoading={isLoading} />
-              
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0 pointer-events-none"
-              >
-                <MoodOrbit 
-                  selectedMoods={selectedMoods} 
-                  onMoodsChange={setSelectedMoods} 
-                />
-              </motion.div>
-            </div>
-
-            {/* 控制面板 - 絕對定位在黑洞下方中央 */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="absolute top-full left-1/2 -translate-x-1/2 -mt-26 flex flex-col gap-4 scale-90 origin-top"
-              style={{ width: '350px' }}
-            >
-              <FilterControls
-                selectedEras={selectedEras}
-                selectedGenres={selectedGenres}
-                onErasChange={setSelectedEras}
-                onGenresChange={setSelectedGenres}
-                gap="16px"
-              />
-              
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.7 }}
-              >
-                <textarea
-                  value={queryText}
-                  onChange={(e) => setQueryText(e.target.value)}
-                  placeholder="例如：我想看一部溫馨感人的家庭電影..."
-                  className="w-full px-3 py-1.5 bg-black/80 border border-white/30 
-                           rounded-full text-white placeholder-gray-500 text-xs
-                           focus:border-white/60 focus:outline-none focus:ring-1 focus:ring-white/40
-                           focus:shadow-[0_0_15px_rgba(255,255,255,0.3)]
-                           transition-all duration-200 resize-none backdrop-blur-sm"
-                  rows={1}
-                />
-              </motion.div>
-            </motion.div>
-          </div>
+          {/* Natural Language Input - Separate Position */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute z-20"
+            style={{
+              left: TEXTAREA_CONFIG.left,
+              top: TEXTAREA_CONFIG.top,
+              width: TEXTAREA_CONFIG.width
+            }}
+          >
+            <textarea
+              value={queryText}
+              onChange={(e) => setQueryText(e.target.value)}
+              placeholder="例如：我想看一部溫馨感人的家庭電影..."
+              className="w-full px-3 py-2 bg-black/80 border border-white/30 
+                       rounded-lg text-white placeholder-gray-500 text-xs
+                       focus:border-white/60 focus:outline-none focus:ring-1 focus:ring-white/40
+                       focus:shadow-[0_0_15px_rgba(255,255,255,0.3)]
+                       transition-all duration-200 resize-none backdrop-blur-sm"
+              style={{ height: TEXTAREA_CONFIG.height }}
+            />
+          </motion.div>
         </div>
 
       {/* Results Grid */}

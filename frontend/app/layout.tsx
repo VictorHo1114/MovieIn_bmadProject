@@ -1,18 +1,28 @@
-// 檔案：frontend/app/layout.tsx (這是修改過的舊檔案)
+'use client';
 
-import './globals.css'; // 假設你的全域 CSS 在這裡
+import './globals.css';
+import { usePathname } from 'next/navigation';
+import NavBar from '../components/NavBar';
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  
+  // 不需要 NavBar 的頁面路徑
+  const noNavBarPages = ['/login', '/register', '/forgot-password', '/reset-password', '/'];
+
+  const shouldShowNavBar = !noNavBarPages.includes(pathname);
+
   return (
-    <html lang="en">
+    <html lang="zh-TW">
       <body>
-        {/* NavBar 已經從這裡被移除了！*/}
-        {/* 這樣 /login 頁面就不會顯示它了 */}
-        {children}
+        {shouldShowNavBar && <NavBar />}
+        <main>
+          {children}
+        </main>
       </body>
     </html>
   );

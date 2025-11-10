@@ -5,12 +5,9 @@ from sqlalchemy import text
 # --- 1. 導入所有 routers ---
 from app.routers import auth 
 from app.routers.home import router as home_router
-# (注意：這裡假設你舊的 profile 頁面路由在 profile_page.py 或其他地方)
-# from app.routers.profile_page import router as profile_page_router 
 from app.routers.search import router as search_router
-
-# [重要修改！] 從 'app.routers.profile' 模組中「導入 router 物件」
-from app.routers.profile import router as profile_api_router 
+from app.routers.profile import router as profile_api_router
+from app.routers.simple_recommend_router import router as recommend_router
 
 # --- 2. 導入你的 DB engine (只為了 /db-test) ---
 from db.database import engine 
@@ -36,11 +33,11 @@ API_PREFIX = "/api/v1"
 
 # --- 5. (修改!) 掛載所有 routers ---
 
-app.include_router(auth.router, prefix=API_PREFIX, tags=["Authentication"]) 
-app.include_router(profile_api_router, prefix=API_PREFIX, tags=["Profile"]) # [新增！] (這行現在正確了)
+app.include_router(auth.router, prefix=f"{API_PREFIX}/auth", tags=["Authentication"]) 
+app.include_router(profile_api_router, prefix=API_PREFIX, tags=["Profile"])
+app.include_router(recommend_router)  # 推薦路由已經包含 /api/recommend/v2 前綴
 
 app.include_router(home_router, prefix=f"{API_PREFIX}/home", tags=["home"])
-# app.include_router(profile_page_router, prefix=f"{API_PREFIX}/profile", tags=["profile_page"]) 
 app.include_router(search_router, prefix=f"{API_PREFIX}/search", tags=["search"])
 from app.routers.movie import router as movie_router
 app.include_router(movie_router, prefix="/movie", tags=["movie"])

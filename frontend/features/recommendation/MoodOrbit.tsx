@@ -34,8 +34,8 @@ export function MoodOrbit({ selectedMoods, onMoodsChange }: MoodOrbitProps) {
   // 避開：正上方 (-30° 到 30°) 和正下方 (150° 到 210°)
   
   const calculateDualCirclePosition = (index: number) => {
-    const innerRadius = 325;  // 內圈半徑
-    const outerRadius = 510;  // 外圈半徑
+    const innerRadius = 380;  // 內圈半徑（擴大）
+    const outerRadius = 590;  // 外圈半徑（擴大）
     
     // 允許擺放區域（用戶定義）：
     // 第一圈（內圈）- 右側 60°-150°，左側 210°-300°

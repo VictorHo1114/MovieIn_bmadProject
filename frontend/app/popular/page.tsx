@@ -1,95 +1,110 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { API_BASE } from "@/lib/config";
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { PageLayout } from '@/components/layouts';
+import { MovieCard } from '@/components/MovieCard';
+import { toMovieCardList } from '@/lib/movieAdapter';
 
-interface Movie {
-  id: string;
-  title: string;
-  overview: string | null;
-  poster_url: string | null;
-  backdrop_url: string | null;
-  release_date: string;
-  rating: number;
-  vote_count: number;
-}
-
-interface PopularMoviesResponse {
-  items: Movie[];
-  total: number;
-}
-
-export default function PopularMovies() {
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function PopularPage() {
+  const [movies, setMovies] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchPopularMovies() {
-      try {
-        const res = await fetch(`${API_BASE}/popular/`);
-        if (!res.ok) throw new Error(`載入失敗：Status ${res.status}`);
-        const data = await res.json() as PopularMoviesResponse;
-        setMovies(data.items);
-      } catch (e: any) {
-        setError(e?.message ?? "載入失敗");
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchPopularMovies();
   }, []);
 
-  if (loading) return <div className="p-6 text-white bg-gray-900 min-h-screen">載入中...</div>;
-  if (error) return <div className="p-6 text-red-400 bg-gray-900 min-h-screen">錯誤：{error}</div>;
-  if (!movies.length) return <div className="p-6 text-white bg-gray-900 min-h-screen">目前沒有熱門電影</div>;
+  const fetchPopularMovies = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/popular/');
+      const data = await response.json();
+      setMovies(data.items || []);
+    } catch (error) {
+      console.error('獲取熱門電影失敗:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <PageLayout>
+        <div className="flex flex-col justify-center items-center h-96">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full"
+          />
+          <p className="text-white text-xl mt-6">載入熱門電影中...</p>
+        </div>
+      </PageLayout>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-900 px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8 text-white text-center tracking-wide">熱門電影</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-        {movies.map((movie) => (
-          <Link 
-            key={movie.id}
-            href={`/movie/${movie.id}`}
-            className="group"
-          >
-            <article className="bg-gray-800 rounded-2xl overflow-hidden shadow-xl hover:shadow-yellow-400/40 transition-all duration-300 hover:-translate-y-1 border border-gray-700">
-              <div className="relative aspect-[2/3]">
-                {movie.poster_url ? (
-                  <img
-                    src={movie.poster_url}
-                    alt={movie.title}
-                    className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-700 flex items-center justify-center text-base text-gray-300">
-                    無海報
-                  </div>
+    <PageLayout>
+      <div className="space-y-8">
+        {/* Page Title with Flame Effect */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <h1 className="text-5xl md:text-6xl font-bold mb-3
+                       bg-gradient-to-r from-orange-400 via-red-500 to-pink-500
+                       bg-clip-text text-transparent
+                       drop-shadow-[0_0_30px_rgba(239,68,68,0.6)]
+                       animate-pulse">
+            🔥 熱門電影
+          </h1>
+          <p className="text-gray-400 text-sm md:text-base">
+            現在最火紅的電影都在這裡
+          </p>
+        </motion.div>
+
+        {/* Movies Grid */}
+        {movies.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4 opacity-30">🎬</div>
+            <p className="text-xl text-gray-400">目前沒有熱門電影資料</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {toMovieCardList(movies).map((movie, index) => (
+              <motion.div
+                key={movie.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.4, 
+                  delay: index * 0.05,
+                  ease: [0.22, 1, 0.36, 1]
+                }}
+                className="relative"
+              >
+                {/* Ranking Badge */}
+                {index < 10 && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: index * 0.05 + 0.3, type: "spring" }}
+                    className="absolute -top-3 -left-3 z-30
+                             w-12 h-12 rounded-full
+                             bg-gradient-to-br from-yellow-400 to-orange-500
+                             flex items-center justify-center
+                             font-bold text-lg text-gray-900
+                             shadow-lg shadow-yellow-500/50
+                             border-2 border-yellow-300"
+                  >
+                    #{index + 1}
+                  </motion.div>
                 )}
-                <div className="absolute top-2 right-2 px-2 py-1 bg-yellow-400 text-gray-900 text-sm font-bold rounded shadow">
-                  ⭐ {movie.rating.toFixed(1)}
-                </div>
-              </div>
-              <div className="p-4">
-                <h2 className="font-bold text-lg mb-2 text-white group-hover:text-yellow-300 transition-colors line-clamp-1">
-                  {movie.title}
-                </h2>
-                <div className="text-sm text-gray-300 mb-2">
-                  {new Date(movie.release_date).getFullYear()}
-                </div>
-                {movie.overview && (
-                  <p className="text-sm text-gray-200 line-clamp-3">
-                    {movie.overview}
-                  </p>
-                )}
-              </div>
-            </article>
-          </Link>
-        ))}
+                <MovieCard movie={movie} />
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+    </PageLayout>
   );
 }

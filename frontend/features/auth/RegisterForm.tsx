@@ -42,6 +42,8 @@ export function RegisterForm() {
 
     try {
       // --- 4. 呼叫 API ---
+      console.log('註冊資料:', { email, password: '***', display_name: displayName }); // Debug log
+      
       await Api.auth.signup({
         email: email,
         password: password,
@@ -49,14 +51,17 @@ export function RegisterForm() {
       });
 
       // 註冊成功！
+      alert('註冊成功！即將導向登入頁面。');
       router.push('/login'); // 導向登入頁面
 
     } catch (err: any) {
-      console.error(err);
+      console.error('註冊錯誤詳情:', err);
       
       // [優化] 錯誤處理 (在地化為中文)
       if (err.message && err.message.includes("Email already registered")) {
         setError('該電子郵件已被註冊，請直接登入。'); // [在地化文本]
+      } else if (err.message) {
+        setError(`錯誤: ${err.message}`); // 顯示詳細錯誤訊息
       } else {
         setError('發生未預期錯誤，請稍後再試。'); // [在地化文本]
       }

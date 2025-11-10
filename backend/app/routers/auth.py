@@ -22,7 +22,7 @@ from app.core import security
 router = APIRouter()
 
 @router.post(
-    "/auth/signup", 
+    "/signup", 
     response_model=user_schemas.UserPublic, # 守門員：定義回傳的格式
     status_code=status.HTTP_201_CREATED,     # 成功時回傳 201
     tags=["Authentication"]                  # API 文件分組
@@ -81,7 +81,7 @@ def signup(
 
 
 @router.post(
-    "/auth/login", 
+    "/login", 
     response_model=user_schemas.Token, # 守門員：回傳 Token 格式
     tags=["Authentication"]
 )
@@ -123,7 +123,7 @@ def login(
 
 
 @router.get(
-    "/auth/me", 
+    "/me", 
     response_model=user_schemas.UserPublic, # 守門員：回傳安全的 UserPublic
     tags=["Authentication", "Profile"]
 )
@@ -144,7 +144,7 @@ def get_me(
 
 # --- [新增！] (B) 更改密碼 API ---
 @router.post(
-    "/auth/change-password", 
+    "/change-password", 
     response_model=user_schemas.UserPublic, # (或者回傳一個 {"message": "Success"})
     tags=["Authentication"]
 )
@@ -183,7 +183,7 @@ def change_password(
 
 # --- [新增！] (A) 忘記密碼 API ---
 @router.post(
-    "/auth/forgot-password", 
+    "/forgot-password", 
     tags=["Authentication"]
 )
 def forgot_password(
@@ -229,7 +229,7 @@ def forgot_password(
 
 # --- [新增！] (B) 重設密碼 API ---
 @router.post(
-    "/auth/reset-password", 
+    "/reset-password", 
     response_model=user_schemas.UserPublic, # 成功後回傳用戶資料
     tags=["Authentication"]
 )

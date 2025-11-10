@@ -17,11 +17,11 @@ export function BlackHoleCanvas({ onGenerate, isLoading }: BlackHoleCanvasProps)
     if (!containerRef.current || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    const h = 600;
-    const w = 600;
+    const h = 700;
+    const w = 700;
     const cw = w;
     const ch = h;
-    const maxorbit = 300;
+    const maxorbit = 250;
     const centery = ch / 2;
     const centerx = cw / 2;
 
@@ -31,7 +31,7 @@ export function BlackHoleCanvas({ onGenerate, isLoading }: BlackHoleCanvasProps)
     canvas.width = cw;
     canvas.height = ch;
     const context = canvas.getContext("2d", { 
-      alpha: false, // 禁用透明度以提升性能
+      alpha: true, // 啟用透明度
       desynchronized: true // 允許異步渲染
     });
     if (!context) return;
@@ -140,11 +140,15 @@ export function BlackHoleCanvas({ onGenerate, isLoading }: BlackHoleCanvasProps)
 
     function loop() {
       if (!context) return;
-      const now = performance.now(); // 使用 performance.now()
+      const now = performance.now();
       currentTime = (now - startTime) / 50;
 
-      context.fillStyle = "rgba(0,0,0,0.2)";
+      // 不使用fillRect清除，而是讓舊的星星自然淡出
+      // 使用globalCompositeOperation來控制混合模式
+      context.globalCompositeOperation = "destination-out";
+      context.fillStyle = "rgba(0, 0, 0, 0.1)"; // 淡出舊內容
       context.fillRect(0, 0, cw, ch);
+      context.globalCompositeOperation = "source-over"; // 恢復正常繪製
 
       // 批量繪製以提升性能
       const stars = starsRef.current;
@@ -159,11 +163,11 @@ export function BlackHoleCanvas({ onGenerate, isLoading }: BlackHoleCanvasProps)
 
     function init() {
       if (!context) return;
-      context.fillStyle = "rgba(0,0,0,1)";
-      context.fillRect(0, 0, cw, ch);
+      // 完全透明的初始背景
+      context.clearRect(0, 0, cw, ch);
       
-      // 減少星星數量從 2500 到 1500 以提升性能
-      for (let i = 0; i < 1500; i++) {
+      // 優化星星數量以提升效能（保持視覺密度）
+      for (let i = 0; i < 1200; i++) {
         new Star();
       }
       loop();
@@ -181,7 +185,7 @@ export function BlackHoleCanvas({ onGenerate, isLoading }: BlackHoleCanvasProps)
   }, []);
 
   return (
-    <div ref={containerRef} className="relative w-[600px] h-[600px]">
+    <div ref={containerRef} className="relative w-[700px] h-[700px]">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
       <button

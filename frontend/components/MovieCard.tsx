@@ -22,19 +22,25 @@ export function MovieCard({ movie }: MovieCardProps) {
         }`}
         style={{ transformStyle: 'preserve-3d' }}
       >
-        {/* 正面 - Front Side */}
+        {/* 正面 - Front Side - 滿版海報設計 */}
         <div 
           className="absolute inset-0 backface-hidden"
           style={{ backfaceVisibility: 'hidden' }}
         >
-          <div className="group relative overflow-hidden rounded-lg border border-gray-700 bg-gray-800/50 h-full transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/20">
-            {/* Poster Image */}
-            <div className="relative aspect-[2/3] w-full overflow-hidden bg-gray-900">
+          <div className="group relative overflow-hidden rounded-lg h-full 
+                        border border-gray-700/50 bg-gray-900
+                        transition-all duration-300 
+                        hover:border-purple-500/50
+                        hover:shadow-2xl hover:shadow-purple-500/20
+                        hover:-translate-y-2">
+            {/* 滿版海報 - 無 aspect-ratio 限制 */}
+            <div className="relative w-full h-full overflow-hidden">
               <Image
                 src={posterUrl}
                 alt={movie.title}
                 fill
-                className="object-cover"
+                className="object-cover transition-transform duration-500 
+                         group-hover:scale-110"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -42,31 +48,47 @@ export function MovieCard({ movie }: MovieCardProps) {
                 }}
               />
               
-              {/* Rating Badge */}
-              <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-sm rounded-full px-2 py-1">
+              {/* 漸層遮罩 - hover 時顯示底部資訊 */}
+              <div className="absolute inset-0 bg-gradient-to-t 
+                            from-black/90 via-black/20 to-transparent
+                            opacity-0 group-hover:opacity-100
+                            transition-opacity duration-300" />
+
+              {/* 評分徽章 - 右上角 */}
+              <div className="absolute top-3 right-3 
+                            bg-black/80 backdrop-blur-sm rounded-full 
+                            px-3 py-1.5 border border-yellow-500/30
+                            shadow-lg shadow-yellow-500/20">
                 <span className="text-yellow-400 font-bold text-sm">★ {rating}</span>
               </div>
 
-              {/* Flip Button */}
-              <button
-                onClick={() => setIsFlipped(true)}
-                className="absolute bottom-2 right-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full p-2 transition-all duration-300 opacity-0 group-hover:opacity-100"
-                aria-label="Flip card"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Movie Title (正面只顯示標題) */}
-            <div className="p-4">
-              <h3 className="font-bold text-lg line-clamp-2 group-hover:text-purple-400 transition-colors">
-                {movie.title}
-              </h3>
-              {movie.release_year && (
-                <p className="text-sm text-gray-400 mt-1">{movie.release_year}</p>
-              )}
+              {/* Hover 時顯示的資訊 - 底部滑入（只有片名和年份） */}
+              <div className="absolute bottom-0 left-0 right-0 p-4
+                            translate-y-full group-hover:translate-y-0
+                            transition-transform duration-300">
+                <h3 className="font-bold text-lg mb-1 text-white 
+                             line-clamp-2 drop-shadow-lg">
+                  {movie.title}
+                </h3>
+                {movie.release_year && (
+                  <p className="text-sm text-gray-300 mb-3">
+                    {movie.release_year}
+                  </p>
+                )}
+                
+                {/* 翻轉按鈕 - 在片名和年份下方 */}
+                <button
+                  onClick={() => setIsFlipped(true)}
+                  className="mx-auto block bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm
+                           text-white text-sm px-6 py-2 rounded-lg
+                           transition-all duration-300 
+                           hover:scale-105
+                           shadow-lg shadow-purple-500/50"
+                  aria-label="查看詳情"
+                >
+                  📖 查看詳情
+                </button>
+              </div>
             </div>
           </div>
         </div>

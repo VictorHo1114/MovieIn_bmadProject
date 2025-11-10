@@ -1,7 +1,14 @@
 "use client";
 
-import { FadeInTransition } from "@/components/PageTransition";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Index() {
-  redirect('/login');
+  const router = useRouter();
+  
+  useEffect(() => {
+    router.push('/login');
+  }, [router]);
+
+  return null;
 }

@@ -13,7 +13,7 @@ from sqlalchemy import (
     Enum as SAEnum,
     DateTime  # <-- [重要！] 確保導入 DateTime
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB  # <-- 新增 JSONB
 from sqlalchemy.orm import relationship
 from .base import Base
 
@@ -81,7 +81,7 @@ class Profile(Base):
     
     # 新增欄位（擴展到 9 欄位）
     bio = Column(String, nullable=True)  # 個人簡介
-    favorite_genres = Column(String, nullable=True)  # 最愛類型 (JSONB)
+    favorite_genres = Column(JSONB, nullable=True)  # 最愛類型 (JSONB 陣列)
     privacy_level = Column(String(20), nullable=True, default="public")  # public/friends/private
     last_active = Column(TIMESTAMP(timezone=True), server_default=text("now()"))  # 最後活動時間
     
