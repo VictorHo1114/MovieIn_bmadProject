@@ -83,7 +83,7 @@ export default function NavBar() {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 w-full bg-gray-900 shadow mb-4">
+      <nav className="sticky top-0 z-50 w-full bg-gray-900 shadow">
         <div className="flex items-center justify-between px-6 py-3 flex-wrap gap-4">
           {/* === 左側 Logo + 主導航 === */}
           <div className="flex items-center space-x-8">

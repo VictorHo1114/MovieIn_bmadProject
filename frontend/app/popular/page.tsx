@@ -29,7 +29,7 @@ export default function PopularPage() {
   if (isLoading) {
     return (
       <PageLayout>
-        <div className="flex flex-col justify-center items-center h-96">
+        <div className="flex flex-col justify-center items-center h-96 py-8">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -43,11 +43,17 @@ export default function PopularPage() {
 
   return (
     <PageLayout>
-      <div className="space-y-8">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.5, ease: "easeOut" }}
+        className="space-y-8 py-8"
+      >
         {/* Page Title with Flame Effect */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
           className="text-center"
         >
           <h1 className="text-5xl md:text-6xl font-bold mb-3
@@ -55,7 +61,7 @@ export default function PopularPage() {
                        bg-clip-text text-transparent
                        drop-shadow-[0_0_30px_rgba(239,68,68,0.6)]
                        animate-pulse">
-            🔥 熱門電影
+            熱門電影
           </h1>
           <p className="text-gray-400 text-sm md:text-base">
             現在最火紅的電影都在這裡
@@ -104,7 +110,7 @@ export default function PopularPage() {
             ))}
           </div>
         )}
-      </div>
+      </motion.div>
     </PageLayout>
   );
 }
