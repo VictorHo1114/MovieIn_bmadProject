@@ -43,7 +43,14 @@ class User(Base):
     reset_token = Column(String, nullable=True, index=True)
     reset_token_expiry = Column(DateTime(timezone=True), nullable=True)
 
+    # 關聯
     profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    watchlist = relationship("Watchlist", back_populates="user", cascade="all, delete-orphan")
+    top10_lists = relationship("Top10List", back_populates="user", cascade="all, delete-orphan")
+    friendships_initiated = relationship("Friendship", foreign_keys="Friendship.user_id", back_populates="user", cascade="all, delete-orphan")
+    friendships_received = relationship("Friendship", foreign_keys="Friendship.friend_id", back_populates="friend", cascade="all, delete-orphan")
+    shared_lists = relationship("SharedList", back_populates="owner", cascade="all, delete-orphan")
+    list_interactions = relationship("ListInteraction", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, password: str):
         """為用戶設置密碼，儲存 hash"""
@@ -60,15 +67,22 @@ class User(Base):
         return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
 
 
-# --- [步驟三：定義 Profile] ---
+# --- [步驟三：定義 Profile (擴展到 9 欄位)] ---
 class Profile(Base):
     __tablename__ = "profiles"
     
     user_id = Column(UUID(as_uuid=True), ForeignKey('users.user_id'), primary_key=True)
     
+    # 原有欄位
     display_name = Column(String, nullable=True)
     avatar_url = Column(String, nullable=True)
     locale = Column(String, nullable=True, default="en")
     adult_content_opt_in = Column(Boolean, nullable=False, default=False)
+    
+    # 新增欄位（擴展到 9 欄位）
+    bio = Column(String, nullable=True)  # 個人簡介
+    favorite_genres = Column(String, nullable=True)  # 最愛類型 (JSONB)
+    privacy_level = Column(String(20), nullable=True, default="public")  # public/friends/private
+    last_active = Column(TIMESTAMP(timezone=True), server_default=text("now()"))  # 最後活動時間
     
     user = relationship("User", back_populates="profile")
