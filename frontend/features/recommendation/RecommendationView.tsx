@@ -7,6 +7,7 @@ import { MoodOrbit } from "./MoodOrbit";
 import { FilterControls } from "./FilterControls";
 import { MovieCard } from "@/components/MovieCard";
 import { getSimpleRecommendations, type RecommendedMovie } from "./services";
+import { StarField } from "./StarField";
 import "./styles/recommendation.css";
 
 export function RecommendationView() {
@@ -84,15 +85,8 @@ export function RecommendationView() {
 
   return (
     <div className="min-h-screen bg-black text-white relative flex flex-col">
-      {/* Starry Background */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1.5, ease: "easeOut" }}
-        className="fixed inset-0 overflow-hidden pointer-events-none bg-black"
-      >
-        <div className="stars-layer"></div>
-      </motion.div>
+      {/* Starry Background - 使用 Canvas 優化版本 */}
+      <StarField />
 
       {/* Main Content */}
       <div className="flex-1">
