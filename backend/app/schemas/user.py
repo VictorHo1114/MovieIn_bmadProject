@@ -57,6 +57,10 @@ class UserPublic(BaseModel):
     
     # 巢狀載入 Profile 資料
     profile: ProfileBase | None = None
+    
+    # 遊戲化欄位
+    total_points: int = 0
+    level: int = 1
 
     class Config:
        from_attributes = True # 關鍵！允許 Pydantic 從 User model 轉換

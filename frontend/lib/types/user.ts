@@ -15,6 +15,8 @@ export interface UserPublic {
   email: string;
   // provider: string; // (我們在 auth.py 忘了加，但稍後可以補上)
   profile: Profile | null;
+  total_points: number;
+  level: number;
 }
 
 // 對齊 schemas.Token

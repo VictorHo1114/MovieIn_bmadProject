@@ -11,7 +11,8 @@ from sqlalchemy import (
     Boolean, 
     ForeignKey, 
     Enum as SAEnum,
-    DateTime  # <-- [重要！] 確保導入 DateTime
+    DateTime,
+    Integer
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB  # <-- 新增 JSONB
 from sqlalchemy.orm import relationship
@@ -43,6 +44,10 @@ class User(Base):
     reset_token = Column(String, nullable=True, index=True)
     reset_token_expiry = Column(DateTime(timezone=True), nullable=True)
 
+    # Gamification fields
+    total_points = Column(Integer, nullable=False, server_default=text("0"))
+    level = Column(Integer, nullable=False, server_default=text("1"))
+
     # 關聯
     profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     watchlist = relationship("Watchlist", back_populates="user", cascade="all, delete-orphan")
@@ -51,6 +56,7 @@ class User(Base):
     friendships_received = relationship("Friendship", foreign_keys="Friendship.friend_id", back_populates="friend", cascade="all, delete-orphan")
     shared_lists = relationship("SharedList", back_populates="owner", cascade="all, delete-orphan")
     list_interactions = relationship("ListInteraction", back_populates="user", cascade="all, delete-orphan")
+    quiz_attempts = relationship("QuizAttempt", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, password: str):
         """為用戶設置密碼，儲存 hash"""

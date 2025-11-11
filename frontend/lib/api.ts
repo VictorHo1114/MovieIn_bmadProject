@@ -1,10 +1,10 @@
-// 1. [修改！] 我們一次性導入所有需要的 http 函式
+// 1. [修改！] ?�們�?次性�??��??��?要�? http ?��?
 import { getJSON, postJSON, patchJSON, deleteJSON, putJSON } from "./http";
 
-// 2. 導入你舊的型別 (保持不變)
+// 2. 導入你�??��???(保�?不�?)
 import type { HomeFeed, SearchResult } from "./types";
 
-// 3. [修改！] 導入「所有」需要的 User 型別
+// 3. [修改！] 導入?��??�」�?要�? User ?�別
 import type {
   UserPublic,
   AuthToken,
@@ -16,7 +16,7 @@ import type {
   ResetPasswordPayload
 } from "./types/user";
 
-// 4. [新增！] 導入 Movie, Watchlist, Top10 型別
+// 4. [?��?！] 導入 Movie, Watchlist, Top10 ?�別
 export interface FrontendMovie {
   id: number;
   title: string;
@@ -49,11 +49,68 @@ export interface Top10Item {
   movie: FrontendMovie;
 }
 
+// Quiz Types
+export interface MovieReference {
+  title: string;
+  year: number;
+  poster_url: string | null;
+}
+
+export interface DailyQuiz {
+  id: number;
+  date: string;
+  question: string;
+  options: string[];
+  difficulty: 'easy' | 'medium' | 'hard';
+  category: string | null;
+  movie_reference: MovieReference | null;
+  correct_answer?: number; // Optional: shown after answering
+}
+
+export interface QuizAttempt {
+  id: number;
+  quiz_id: number;
+  user_answer: number | null;
+  is_correct: boolean;
+  points_earned: number;
+  time_spent: number;
+  answered_at: string;
+}
+
+export interface TodayQuizResponse {
+  quiz: DailyQuiz | null;
+  user_attempt: QuizAttempt | null;
+  has_answered: boolean;
+  time_until_next: string | null;
+  daily_attempts: number;
+  daily_limit: number;
+  remaining_attempts: number;
+}
+
+export interface UserStats {
+  total_points: number;
+  previous_points: number;
+  level: number;
+  previous_level: number;
+  level_up: boolean;
+  global_rank: number | null;
+  friend_rank: number | null;
+}
+
+export interface QuizSubmitResponse {
+  is_correct: boolean;
+  correct_answer: number;
+  points_earned: number;
+  explanation: string | null;
+  user_stats: UserStats;
+  movie_reference: MovieReference | null;
+}
+
 export const Api = {
-  // --- 你現有的 Home (保持不變) ---
+  // --- 你現?��? Home (保�?不�?) ---
   home: () => getJSON<HomeFeed>("/home"),
 
-  // --- 你現有的 Search (保持不變) ---
+  // --- 你現?��? Search (保�?不�?) ---
   search: (q: string) =>
     getJSON<SearchResult>(`/search?q=${encodeURIComponent(q)}`),
   getRecommendations: (params: {
@@ -66,7 +123,7 @@ export const Api = {
     body: JSON.stringify(params),
   }),
 
-  // --- [新增！] Movies API (使用絕對路徑繞過 /api/v1 base) ---
+  // --- [?��?！] Movies API (使用絕�?路�?繞�? /api/v1 base) ---
   movies: {
     getPopular: (page: number = 1, limit: number = 20) => 
       getJSON<FrontendMovie[]>(`http://127.0.0.1:8000/api/movies/popular?page=${page}&limit=${limit}`),
@@ -81,7 +138,7 @@ export const Api = {
       getJSON<{ exists: boolean; tmdb_id: number }>(`http://127.0.0.1:8000/api/movies/check/${tmdbId}`),
   },
 
-  // --- [新增！] Watchlist API (使用絕對路徑繞過 /api/v1 base) ---
+  // --- [?��?！] Watchlist API (使用絕�?路�?繞�? /api/v1 base) ---
   watchlist: {
     getAll: () => 
       getJSON<{ items: WatchlistItem[]; total: number }>("http://127.0.0.1:8000/api/watchlist"),
@@ -96,7 +153,7 @@ export const Api = {
       patchJSON<WatchlistItem>(`http://127.0.0.1:8000/api/watchlist/${tmdbId}`, data),
   },
 
-  // --- [新增！] Top10 API (使用絕對路徑繞過 /api/v1 base) ---
+  // --- [?��?！] Top10 API (使用絕�?路�?繞�? /api/v1 base) ---
   top10: {
     getAll: (category?: string) => {
       const url = category 
@@ -126,7 +183,7 @@ export const Api = {
       putJSON<{ items: Top10Item[]; total: number }>("http://127.0.0.1:8000/api/top10/reorder", { items }),
   },
 
-  // --- (重要！) 修改 Profile ---
+  // --- (?��?�? 修改 Profile ---
   profile: {
     me: () => getJSON<UserPublic>("/auth/me"),
     
@@ -135,7 +192,7 @@ export const Api = {
     }
   },
 
-  // --- (重要！) 修改 Auth ---
+  // --- (?��?�? 修改 Auth ---
   auth: {
     signup: (data: UserCreate): Promise<UserPublic> => {
       return postJSON<UserPublic>("/auth/signup", data);
@@ -156,5 +213,14 @@ export const Api = {
     resetPassword: (data: ResetPasswordPayload): Promise<UserPublic> => {
       return postJSON<UserPublic>("/auth/reset-password", data);
     }
+  },
+
+  // --- Quiz API ---
+  quiz: {
+    getToday: () =>
+      getJSON<TodayQuizResponse>("http://127.0.0.1:8000/api/v1/quiz/today"),
+    
+    submit: (data: { quiz_id: number; answer: number | null; time_spent: number }) =>
+      postJSON<QuizSubmitResponse>("http://127.0.0.1:8000/api/v1/quiz/submit", data),
   },
 };

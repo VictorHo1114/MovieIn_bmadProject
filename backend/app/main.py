@@ -11,6 +11,7 @@ from app.routers.simple_recommend_router import router as recommend_router
 from app.routers.watchlist import router as watchlist_router
 from app.routers.top10 import router as top10_router
 from app.routers.movies import router as movies_router
+from app.routers.quiz import router as quiz_router
 
 # --- 2. 導入你的 DB engine (只為了 /db-test) ---
 from db.database import engine 
@@ -47,6 +48,7 @@ app.include_router(search_router, prefix=f"{API_PREFIX}/search", tags=["search"]
 app.include_router(movies_router)
 app.include_router(watchlist_router)
 app.include_router(top10_router)
+app.include_router(quiz_router, prefix=f"{API_PREFIX}/quiz", tags=["Quiz"])
 
 from app.routers.movie import router as movie_router
 app.include_router(movie_router, prefix="/movie", tags=["movie"])

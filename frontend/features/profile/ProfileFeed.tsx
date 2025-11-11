@@ -57,6 +57,18 @@ export function ProfileFeed() {
       }
     };
     fetchUser();
+
+    // 監聽積分更新事件
+    const handlePointsUpdate = () => {
+      fetchUser();
+    };
+    window.addEventListener('quizPointsUpdated', handlePointsUpdate);
+    window.addEventListener('profileUpdated', handlePointsUpdate);
+
+    return () => {
+      window.removeEventListener('quizPointsUpdated', handlePointsUpdate);
+      window.removeEventListener('profileUpdated', handlePointsUpdate);
+    };
   }, [router]);
 
   // --- 同步網址的 tab 參數 ---
@@ -171,10 +183,21 @@ export function ProfileFeed() {
             <h1 className="text-3xl font-bold mb-1">
               {user?.profile?.display_name || '使用者'}
             </h1>
-            <span className="text-gray-300 flex items-center">
+            <span className="text-gray-300 flex items-center mb-2">
               <FaMapMarkerAlt className="inline-block h-4 w-4" />
               <span className="ml-1">{user?.email}</span>
             </span>
+            {/* 積分與等級 */}
+            <div className="flex gap-4 mt-3">
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
+                <p className="text-xs text-gray-200">總積分</p>
+                <p className="text-2xl font-bold text-yellow-300">{user?.total_points || 0}</p>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
+                <p className="text-xs text-gray-200">等級</p>
+                <p className="text-2xl font-bold text-green-300">LV.{user?.level || 1}</p>
+              </div>
+            </div>
           </div>
           {/* 右側登出按鈕 */}
           <div className="text-right mt-4 md:mt-0">

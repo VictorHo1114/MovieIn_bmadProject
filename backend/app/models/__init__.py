@@ -5,6 +5,7 @@ from .base import Base
 from .user import User, Profile, UserProvider
 from .movie import Movie
 from .social import Watchlist, Top10List, Friendship, SharedList, ListInteraction
+from .quiz import DailyQuiz, QuizAttempt
 
 __all__ = [
     "Base",
@@ -17,4 +18,6 @@ __all__ = [
     "Friendship",
     "SharedList",
     "ListInteraction",
+    "DailyQuiz",
+    "QuizAttempt",
 ]
