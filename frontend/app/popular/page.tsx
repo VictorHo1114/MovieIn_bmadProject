@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { PageLayout } from '@/components/layouts';
 import { MovieCard } from '@/components/MovieCard';
 import { toMovieCardList } from '@/lib/movieAdapter';
+import { movieExistsCache } from '@/lib/movieExistsCache';
 
 export default function PopularPage() {
   const [movies, setMovies] = useState<any[]>([]);
@@ -18,7 +19,16 @@ export default function PopularPage() {
     try {
       const response = await fetch('http://127.0.0.1:8000/popular/');
       const data = await response.json();
-      setMovies(data.items || []);
+      const items = data.items || [];
+      setMovies(items);
+      
+      // 🎯 優化：批量檢查所有電影是否在 DB
+      const tmdbIds = items.map((m: any) => parseInt(m.id)).filter((id: number) => !isNaN(id));
+      if (tmdbIds.length > 0) {
+        // 批量檢查（並行請求，但有快取機制避免重複）
+        await movieExistsCache.checkBatch(tmdbIds);
+        console.log(`✅ 已批量檢查 ${tmdbIds.length} 部熱門電影`);
+      }
     } catch (error) {
       console.error('獲取熱門電影失敗:', error);
     } finally {

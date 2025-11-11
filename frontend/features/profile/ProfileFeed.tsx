@@ -14,6 +14,8 @@ import {
   FaEyeSlash     // [新增！]
 } from 'react-icons/fa';
 import { LogoutModal } from '../../components/LogoutModal';
+import { WatchlistSection } from './WatchlistSection';
+import { Top10Section } from './Top10Section';
 
 export function ProfileFeed() {
   const router = useRouter();
@@ -211,7 +213,7 @@ export function ProfileFeed() {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <FaHeart className="mr-2" /> 待看清單
+                <FaListAlt className="mr-2" /> 待看清單
               </button>
 
               <button
@@ -222,7 +224,7 @@ export function ProfileFeed() {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <FaListAlt className="mr-2" /> 我的片單
+                <FaHeart className="mr-2" /> 十大最愛
               </button>
 
               <button
@@ -312,16 +314,16 @@ export function ProfileFeed() {
             {/* 內容 2: 我的追蹤 */}
             {activeTab === 'watchlist' && (
               <div>
-                <h1 className="text-xl font-bold text-gray-900">待看清單</h1>
-                <p className="p-4">功能開發中...</p>
+                <h1 className="text-xl font-bold text-gray-900 mb-6">待看清單</h1>
+                <WatchlistSection />
               </div>
             )}
 
             {/* 內容 3: 我的清單 */}
             {activeTab === 'lists' && (
               <div>
-                <h1 className="text-xl font-bold text-gray-900">我的片單</h1>
-                <p className="p-4">功能開發中...</p>
+                <h1 className="text-xl font-bold text-gray-900 mb-6">我的十大片單</h1>
+                <Top10Section />
               </div>
             )}
 

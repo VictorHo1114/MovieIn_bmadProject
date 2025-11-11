@@ -1,6 +1,20 @@
 import { API_BASE } from "./config";
 
 /**
+ * 輔助函式：判斷是否為絕對 URL
+ */
+function isAbsoluteUrl(url: string): boolean {
+  return url.startsWith('http://') || url.startsWith('https://');
+}
+
+/**
+ * 輔助函式：建立完整 URL
+ */
+function buildUrl(path: string): string {
+  return isAbsoluteUrl(path) ? path : `${API_BASE}${path}`;
+}
+
+/**
  * 輔助函式：自動建立並附加 'Authorization' 標頭 (如果 token 存在)
  */
 function getAuthHeaders(): HeadersInit {
@@ -32,7 +46,7 @@ export async function getJSON<T>(path: string, init?: RequestInit): Promise<T> {
     cache: "no-store",
   };
 
-  const res = await fetch(`${API_BASE}${path}`, mergedInit);
+  const res = await fetch(buildUrl(path), mergedInit);
   
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -64,7 +78,7 @@ export async function postJSON<T>(
   const mergedInit = { ...postInit, ...init };
   mergedInit.headers = { ...postInit.headers, ...init?.headers };
 
-  const res = await fetch(`${API_BASE}${path}`, mergedInit);
+  const res = await fetch(buildUrl(path), mergedInit);
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -101,7 +115,7 @@ export async function postForm<T>(
   const mergedInit = { ...formInit, ...init };
   mergedInit.headers = { ...formInit.headers, ...init?.headers };
 
-  const res = await fetch(`${API_BASE}${path}`, mergedInit);
+  const res = await fetch(buildUrl(path), mergedInit);
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -133,7 +147,7 @@ export async function patchJSON<T>(
   const mergedInit = { ...patchInit, ...init };
   mergedInit.headers = { ...patchInit.headers, ...init?.headers };
 
-  const res = await fetch(`${API_BASE}${path}`, mergedInit);
+  const res = await fetch(buildUrl(path), mergedInit);
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -145,4 +159,71 @@ export async function patchJSON<T>(
   }
 
   return res.json() as Promise<T>;
+}
+
+/**
+ * PUT JSON 請求（自動附加 Auth 標頭）
+ */
+export async function putJSON<T>(
+  path: string,
+  data: unknown, 
+  init?: RequestInit
+): Promise<T> {
+  const authHeaders = getAuthHeaders();
+  
+  const putInit: RequestInit = {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders,
+    },
+    body: JSON.stringify(data),
+    cache: 'no-store', 
+  };
+  
+  const mergedInit = { ...putInit, ...init };
+  mergedInit.headers = { ...putInit.headers, ...init?.headers };
+
+  const res = await fetch(buildUrl(path), mergedInit);
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`[${res.status}] ${path} ${text}`);
+  }
+  
+  if (res.status === 204 || !res.headers.get("content-type")?.includes("application/json")) {
+    return {} as T; 
+  }
+
+  return res.json() as Promise<T>;
+}
+
+/**
+ * DELETE 請求（自動附加 Auth 標頭）
+ */
+export async function deleteJSON(
+  path: string,
+  init?: RequestInit
+): Promise<void> {
+  const authHeaders = getAuthHeaders();
+  
+  const deleteInit: RequestInit = {
+    method: 'DELETE',
+    headers: {
+      ...authHeaders,
+      ...init?.headers,
+    },
+    cache: 'no-store', 
+  };
+  
+  const mergedInit = { ...deleteInit, ...init };
+
+  const res = await fetch(buildUrl(path), mergedInit);
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`[${res.status}] ${path} ${text}`);
+  }
+  
+  // DELETE 通常回傳 204 No Content，不需要解析 JSON
 }

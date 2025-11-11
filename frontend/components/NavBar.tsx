@@ -10,6 +10,8 @@ import {
   FaListAlt,
   FaCog,
   FaSignOutAlt,
+  FaBars,
+  FaTimes,
 } from 'react-icons/fa';
 
 import { Api } from '../lib/api';
@@ -20,6 +22,7 @@ export default function NavBar() {
   const router = useRouter();
   const pathname = usePathname();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [user, setUser] = useState<UserPublic | null>(null);
   const timeoutRef = useRef<number | null>(null);
@@ -84,14 +87,23 @@ export default function NavBar() {
   return (
     <>
       <nav className="sticky top-0 z-50 w-full bg-gray-900 shadow">
-        <div className="flex items-center justify-between px-6 py-3 flex-wrap gap-4">
-          {/* === 左側 Logo + 主導航 === */}
-          <div className="flex items-center space-x-8">
-            <Link href="/home" className="text-white text-3xl font-bold hover:text-purple-400 transition-colors">
+        <div className="relative flex items-center justify-between px-4 md:px-6 py-3">
+          {/* === 左側 Logo + Hamburger === */}
+          <div className="flex items-center space-x-4 z-10">
+            {/* Hamburger Menu Button (Mobile) */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden text-white text-2xl hover:text-purple-400 transition-colors"
+              aria-label="選單"
+            >
+              {isMobileMenuOpen ? <FaTimes /> : <FaBars />}
+            </button>
+
+            <Link href="/home" className="text-white text-2xl md:text-3xl font-bold hover:text-purple-400 transition-colors">
               MovieIN
             </Link>
             
-            {/* === 主導航連結 === */}
+            {/* === 主導航連結 (Desktop) === */}
             <nav className="hidden md:flex items-center space-x-1">
               <Link href="/home" className={linkCls('/home')}>
                 首頁
@@ -108,8 +120,8 @@ export default function NavBar() {
             </nav>
           </div>
 
-          {/* === 中間搜尋欄 === */}
-          <div className="flex-1 max-w-md">
+          {/* === 中間搜尋欄 (Desktop & Tablet) - 絕對置中 === */}
+          <div className="hidden sm:block absolute left-1/2 -translate-x-1/2 w-full max-w-md px-4">
             <form className="relative w-full" onSubmit={handleSearchSubmit}>
               <input
                 type="text"
@@ -127,7 +139,12 @@ export default function NavBar() {
           </div>
 
           {/* === 右側使用者頭像區 === */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 md:space-x-3 z-10">
+            {/* Mobile Search Icon */}
+            <Link href="/search" className="sm:hidden text-white text-xl hover:text-purple-400 transition-colors">
+              <FaSearch />
+            </Link>
+
             <li
               className="relative list-none"
               onMouseEnter={handleMouseEnter}
@@ -147,7 +164,7 @@ export default function NavBar() {
 
                 {/* 頭像 */}
                 <img
-                  className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-700 hover:ring-purple-500 transition-all"
+                  className="h-8 w-8 md:h-10 md:w-10 rounded-full object-cover ring-2 ring-gray-700 hover:ring-purple-500 transition-all"
                   src={user?.profile?.avatar_url || '/img/default-avatar.jpg'}
                   alt={user?.profile?.display_name || '使用者'}
                 />
@@ -169,7 +186,7 @@ export default function NavBar() {
                     onClick={() => setIsProfileOpen(false)}
                     className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
-                    <FaHeart className="mr-2 h-5 w-5 text-gray-400" />
+                    <FaListAlt className="mr-2 h-5 w-5 text-gray-400" />
                     待看清單
                   </Link>
                   <Link
@@ -177,7 +194,7 @@ export default function NavBar() {
                     onClick={() => setIsProfileOpen(false)}
                     className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
-                    <FaListAlt className="mr-2 h-5 w-5 text-gray-400" />
+                    <FaHeart className="mr-2 h-5 w-5 text-gray-400" />
                     我的片單
                   </Link>
                   <Link
@@ -203,6 +220,80 @@ export default function NavBar() {
             </li>
           </div>
         </div>
+
+        {/* === Mobile Menu Drawer === */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-gray-800 border-t border-gray-700">
+            {/* Mobile Search Bar */}
+            <div className="px-4 py-3 sm:hidden">
+              <form className="relative w-full" onSubmit={(e) => {
+                handleSearchSubmit(e);
+                setIsMobileMenuOpen(false);
+              }}>
+                <input
+                  type="text"
+                  name="search"
+                  className="block w-full bg-white border border-gray-300 rounded-lg py-2 pl-4 pr-10 text-sm text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="搜尋電影..."
+                />
+                <button
+                  type="submit"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 hover:text-purple-500 transition-colors"
+                >
+                  <FaSearch className="h-5 w-5 text-gray-400" />
+                </button>
+              </form>
+            </div>
+
+            {/* Mobile Navigation Links */}
+            <nav className="flex flex-col py-2">
+              <Link 
+                href="/home" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`px-4 py-3 text-base transition-colors ${
+                  pathname === '/home' 
+                    ? 'bg-purple-600/20 text-white font-bold border-l-4 border-purple-400' 
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                首頁
+              </Link>
+              <Link 
+                href="/recommendation" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`px-4 py-3 text-base transition-colors ${
+                  pathname === '/recommendation' 
+                    ? 'bg-purple-600/20 text-white font-bold border-l-4 border-purple-400' 
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                推薦
+              </Link>
+              <Link 
+                href="/popular" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`px-4 py-3 text-base transition-colors ${
+                  pathname === '/popular' 
+                    ? 'bg-purple-600/20 text-white font-bold border-l-4 border-purple-400' 
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                熱門
+              </Link>
+              <Link 
+                href="/search" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`px-4 py-3 text-base transition-colors ${
+                  pathname === '/search' 
+                    ? 'bg-purple-600/20 text-white font-bold border-l-4 border-purple-400' 
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                搜尋
+              </Link>
+            </nav>
+          </div>
+        )}
       </nav>
 
       {/* 登出確認 Modal */}

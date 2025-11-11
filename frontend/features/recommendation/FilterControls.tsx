@@ -39,8 +39,26 @@ export function FilterControls({
 }: FilterControlsProps) {
   const [isEraOpen, setIsEraOpen] = useState(false);
   const [isGenreOpen, setIsGenreOpen] = useState(false);
+  const [eraDropDirection, setEraDropDirection] = useState<'down' | 'up'>('down');
+  const [genreDropDirection, setGenreDropDirection] = useState<'down' | 'up'>('down');
   const eraRef = useRef<HTMLDivElement>(null);
   const genreRef = useRef<HTMLDivElement>(null);
+
+  // 偵測下拉方向 - 根據可用空間
+  const detectDropDirection = (ref: React.RefObject<HTMLDivElement | null>): 'down' | 'up' => {
+    if (!ref.current) return 'down';
+    
+    const rect = ref.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    
+    // 下拉選單高度約 160px (max-h-40)
+    const dropdownHeight = 160;
+    
+    // 如果下方空間不足，且上方空間充足，則向上展開
+    return spaceBelow < dropdownHeight && spaceAbove > dropdownHeight ? 'up' : 'down';
+  };
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -92,7 +110,12 @@ export function FilterControls({
       {/* 年代選擇器 - 下拉式 */}
       <div className="relative" ref={eraRef}>
         <div 
-          onClick={() => setIsEraOpen(!isEraOpen)}
+          onClick={() => {
+            if (!isEraOpen) {
+              setEraDropDirection(detectDropDirection(eraRef));
+            }
+            setIsEraOpen(!isEraOpen);
+          }}
           className="min-h-[32px] px-2.5 py-1 bg-black/80 border border-white/30 
                    rounded-md cursor-pointer hover:border-white/60 hover:shadow-[0_0_10px_rgba(255,255,255,0.2)]
                    transition-all backdrop-blur-sm
@@ -127,8 +150,9 @@ export function FilterControls({
 
         {/* Dropdown Options */}
         {isEraOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-black/95 border border-white/30 
-                        rounded-md shadow-xl z-50 max-h-40 overflow-y-auto backdrop-blur-md">
+          <div className={`absolute left-0 right-0 ${eraDropDirection === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'} 
+                        bg-black/95 border border-white/30 
+                        rounded-md shadow-xl z-[100] max-h-40 overflow-y-auto backdrop-blur-md`}>
             {ERA_OPTIONS.map(era => {
               const isSelected = selectedEras.includes(era.id);
               const isDisabled = !isSelected && selectedEras.length >= 3;
@@ -156,7 +180,12 @@ export function FilterControls({
       {/* 類型選擇器 - 下拉式 */}
       <div className="relative" ref={genreRef}>
         <div 
-          onClick={() => setIsGenreOpen(!isGenreOpen)}
+          onClick={() => {
+            if (!isGenreOpen) {
+              setGenreDropDirection(detectDropDirection(genreRef));
+            }
+            setIsGenreOpen(!isGenreOpen);
+          }}
           className="min-h-[32px] px-2.5 py-1 bg-black/80 border border-white/30 
                    rounded-md cursor-pointer hover:border-white/60 hover:shadow-[0_0_10px_rgba(255,255,255,0.2)]
                    transition-all backdrop-blur-sm
@@ -188,8 +217,9 @@ export function FilterControls({
 
         {/* Dropdown Options */}
         {isGenreOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-black/95 border border-white/30 
-                        rounded-md shadow-xl z-50 max-h-40 overflow-y-auto backdrop-blur-md">
+          <div className={`absolute left-0 right-0 ${genreDropDirection === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'} 
+                        bg-black/95 border border-white/30 
+                        rounded-md shadow-xl z-[100] max-h-40 overflow-y-auto backdrop-blur-md`}>
             {GENRE_OPTIONS.map(genre => {
               const isSelected = selectedGenres.includes(genre);
               const isDisabled = !isSelected && selectedGenres.length >= 3;

@@ -130,39 +130,43 @@ export function RecommendationView() {
               </motion.div>
             </motion.div>
             
-            <div className="relative">
-              <BlackHoleCanvas onGenerate={handleGenerate} isLoading={isLoading} />
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0 pointer-events-none"
-              >
-                <MoodOrbit 
-                  selectedMoods={selectedMoods} 
-                  onMoodsChange={setSelectedMoods} 
-                />
-              </motion.div>
+            <div className="relative w-full flex items-center justify-center py-8">
+              <div className="relative">
+                <BlackHoleCanvas onGenerate={handleGenerate} isLoading={isLoading} />
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute inset-0 pointer-events-none overflow-visible"
+                >
+                  <MoodOrbit 
+                    selectedMoods={selectedMoods} 
+                    onMoodsChange={setSelectedMoods} 
+                  />
+                </motion.div>
+              </div>
             </div>
           </div>
 
           {/* Desktop: 置中黑洞，下方控制面板 */}
           <div className="hidden lg:block relative">
             {/* 黑洞 + Mood Orbit - 水平居中 */}
-            <div className="relative flex items-center justify-center">
-              <BlackHoleCanvas onGenerate={handleGenerate} isLoading={isLoading} />
-              
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0 pointer-events-none"
-              >
-                <MoodOrbit 
-                  selectedMoods={selectedMoods} 
-                  onMoodsChange={setSelectedMoods} 
-                />
-              </motion.div>
+            <div className="relative flex items-center justify-center py-8">
+              <div className="relative">
+                <BlackHoleCanvas onGenerate={handleGenerate} isLoading={isLoading} />
+                
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute inset-0 pointer-events-none overflow-visible"
+                >
+                  <MoodOrbit 
+                    selectedMoods={selectedMoods} 
+                    onMoodsChange={setSelectedMoods} 
+                  />
+                </motion.div>
+              </div>
             </div>
 
             {/* 控制面板 - 絕對定位在黑洞下方中央 */}

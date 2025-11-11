@@ -22,7 +22,7 @@ class Watchlist(Base):
     
     # 關聯
     user = relationship("User", back_populates="watchlist")
-    # movie = relationship("Movie", back_populates="in_watchlists")  # 如果有 Movie model
+    movie = relationship("Movie", back_populates="in_watchlists")
 
 
 class Top10List(Base):
@@ -40,6 +40,7 @@ class Top10List(Base):
     
     # 關聯
     user = relationship("User", back_populates="top10_lists")
+    movie = relationship("Movie", back_populates="in_top10_lists")
 
 
 class Friendship(Base):

@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from db.database import SessionLocal
+from db.database import SessionLocal, get_db
 from app.services.simple_recommend import recommend_movies_hybrid, recommend_movies_simple
 from app.services.mapping_tables import get_mood_label_list  # 修改導入 ⭐
 
@@ -20,13 +20,6 @@ class SimpleRecommendRequest(BaseModel):
     randomness: Optional[float] = 0.3            # 隨機性參數（0.0-1.0）
     decision_threshold: Optional[int] = 40       # 決策閾值（預設 40）
     use_legacy: Optional[bool] = False           # 是否使用舊版推薦（對照組）
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @router.post("/movies")
 async def get_simple_recommendations(

@@ -7,6 +7,7 @@ import { API_BASE } from '@/lib/config'
 import type { SearchResult } from '@/lib/types'
 import { MovieCard } from '@/components/MovieCard'
 import { toMovieCardList } from '@/lib/movieAdapter'
+import { movieExistsCache } from '@/lib/movieExistsCache'
 
 export default function SearchForm() {
   const router = useRouter()
@@ -37,6 +38,18 @@ export default function SearchForm() {
       if (!res.ok) throw new Error(`Status ${res.status}`)
       const data = (await res.json()) as SearchResult
       setResult(data)
+      
+      // 🎯 優化：批量檢查搜尋結果中的電影是否在 DB
+      if (data.items && data.items.length > 0) {
+        const tmdbIds = data.items
+          .map((m: any) => parseInt(m.id))
+          .filter((id: number) => !isNaN(id));
+        
+        if (tmdbIds.length > 0) {
+          await movieExistsCache.checkBatch(tmdbIds);
+          console.log(`✅ 已批量檢查 ${tmdbIds.length} 部搜尋結果電影`);
+        }
+      }
     } catch (e: any) {
       setError(e?.message ?? 'Unknown error')
       setResult(null)

@@ -8,6 +8,9 @@ from app.routers.home import router as home_router
 from app.routers.search import router as search_router
 from app.routers.profile import router as profile_api_router
 from app.routers.simple_recommend_router import router as recommend_router
+from app.routers.watchlist import router as watchlist_router
+from app.routers.top10 import router as top10_router
+from app.routers.movies import router as movies_router
 
 # --- 2. 導入你的 DB engine (只為了 /db-test) ---
 from db.database import engine 
@@ -39,6 +42,12 @@ app.include_router(recommend_router)  # 推薦路由已經包含 /api/recommend/
 
 app.include_router(home_router, prefix=f"{API_PREFIX}/home", tags=["home"])
 app.include_router(search_router, prefix=f"{API_PREFIX}/search", tags=["search"])
+
+# 新增的 routers (已在各自的 router 定義中包含 /api/* 前綴)
+app.include_router(movies_router)
+app.include_router(watchlist_router)
+app.include_router(top10_router)
+
 from app.routers.movie import router as movie_router
 app.include_router(movie_router, prefix="/movie", tags=["movie"])
 from app.routers.popular import router as popular_router

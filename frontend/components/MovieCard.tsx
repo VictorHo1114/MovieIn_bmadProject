@@ -3,16 +3,170 @@
 
 import type { RecommendedMovie } from "@/features/recommendation/services";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Api } from "@/lib/api";
+import { toast } from "@/lib/toast";
+import { movieListStore } from "@/lib/movieListStore";
+import { movieExistsCache } from "@/lib/movieExistsCache";
 
 interface MovieCardProps {
   movie: RecommendedMovie;
+  onWatchlistChange?: () => void;  // 當 watchlist 狀態改變時的回調
+  onTop10Change?: () => void;      // 當 top10 狀態改變時的回調
 }
 
-export function MovieCard({ movie }: MovieCardProps) {
+export function MovieCard({ movie, onWatchlistChange, onTop10Change }: MovieCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [inWatchlist, setInWatchlist] = useState(false);
+  const [inTop10, setInTop10] = useState(false);
+  const [isWatchlistLoading, setIsWatchlistLoading] = useState(false);
+  const [isTop10Loading, setIsTop10Loading] = useState(false);
+  const [isInDatabase, setIsInDatabase] = useState<boolean | null>(null); // null = 檢查中
+  
   const posterUrl = movie.poster_url || "/placeholder-movie.png";
   const rating = movie.vote_average.toFixed(1);
+
+  // 從 store 獲取初始狀態並訂閱變化
+  useEffect(() => {
+    const movieId = parseInt(movie.id);
+    if (isNaN(movieId)) return;
+
+    // 使用快取檢查電影是否在資料庫中
+    const checkDatabase = async () => {
+      const exists = await movieExistsCache.checkExists(movieId);
+      setIsInDatabase(exists);
+    };
+    checkDatabase();
+
+    // 更新本地狀態
+    const updateState = () => {
+      setInWatchlist(movieListStore.isInWatchlist(movieId));
+      setInTop10(movieListStore.isInTop10(movieId));
+    };
+
+    // 初始化
+    updateState();
+
+    // 訂閱 store 變化
+    const unsubscribe = movieListStore.subscribe(updateState);
+
+    // 嘗試從快取獲取或刷新資料
+    movieListStore.fetch();
+
+    return unsubscribe;
+  }, [movie.id]);
+
+  const handleWatchlistToggle = async () => {
+    setIsWatchlistLoading(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        toast.warning('請先登入才能使用此功能');
+        return;
+      }
+
+      const movieId = parseInt(movie.id);
+      if (isNaN(movieId)) {
+        toast.error('電影 ID 無效');
+        return;
+      }
+
+      if (inWatchlist) {
+        await Api.watchlist.remove(movieId);
+        movieListStore.removeFromWatchlist(movieId);
+        toast.success('已從待看清單移除');
+        console.log('✅ 成功從 Watchlist 移除');
+      } else {
+        await Api.watchlist.add(movieId);
+        movieListStore.addToWatchlist(movieId);
+        toast.success('已加入待看清單');
+        console.log('✅ 成功加入 Watchlist');
+      }
+      
+      // 移除 refresh 呼叫 - 依賴 store 的觀察者模式自動更新
+      // onWatchlistChange?.();
+    } catch (error: any) {
+      console.error('❌ Watchlist toggle error:', error);
+      const errorMsg = error.message || '操作失敗';
+      
+      if (errorMsg.includes('404') || errorMsg.includes('not found')) {
+        toast.error('此電影尚未載入資料庫，請稍後再試');
+      } else if (errorMsg.includes('400') || errorMsg.includes('already')) {
+        toast.info('此電影已在清單中');
+        // 強制刷新狀態
+        await movieListStore.fetch(true);
+      } else {
+        toast.error(`操作失敗: ${errorMsg.substring(0, 50)}`);
+      }
+    } finally {
+      setIsWatchlistLoading(false);
+    }
+  };
+
+  const handleTop10Toggle = async () => {
+    setIsTop10Loading(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        toast.warning('請先登入才能使用此功能');
+        return;
+      }
+
+      const movieId = parseInt(movie.id);
+      if (isNaN(movieId)) {
+        toast.error('電影 ID 無效');
+        return;
+      }
+
+      if (inTop10) {
+        // 移除時顯示確認對話框
+        const confirmed = window.confirm(
+          `確定要將《${movie.title}》從 Top 10 清單中移除嗎？\n\n此操作無法撤銷。`
+        );
+        
+        if (!confirmed) {
+          setIsTop10Loading(false);
+          return;
+        }
+        
+        await Api.top10.remove(movieId);
+        movieListStore.removeFromTop10(movieId);
+        toast.success('已從 Top 10 移除');
+        console.log('✅ 成功從 Top 10 移除');
+      } else {
+        // 檢查是否已滿 10 部
+        if (movieListStore.getTop10Count() >= 10) {
+          toast.warning('Top 10 清單已滿（最多 10 部），請先到個人頁面移除其他電影');
+          return;
+        }
+        
+        await Api.top10.add(movieId);
+        movieListStore.addToTop10(movieId);
+        toast.success('已加入 Top 10 清單');
+        console.log('✅ 成功加入 Top 10');
+      }
+      
+      // 移除 refresh 呼叫 - 依賴 store 的觀察者模式自動更新
+      // onTop10Change?.();
+    } catch (error: any) {
+      console.error('❌ Top10 toggle error:', error);
+      const errorMsg = error.message || '操作失敗';
+      
+      if (errorMsg.includes('404') || errorMsg.includes('not found')) {
+        toast.error('此電影尚未載入資料庫，請稍後再試');
+      } else if (errorMsg.includes('400') || errorMsg.includes('already')) {
+        toast.info('此電影已在清單中');
+        // 強制刷新狀態
+        await movieListStore.fetch(true);
+      } else if (errorMsg.includes('full')) {
+        toast.warning('Top 10 清單已滿（最多 10 部）');
+      } else {
+        toast.error(`操作失敗: ${errorMsg.substring(0, 50)}`);
+      }
+    } finally {
+      setIsTop10Loading(false);
+    }
+  };
 
   return (
     <div className="relative h-[450px] w-full perspective-1000">
@@ -135,29 +289,54 @@ export function MovieCard({ movie }: MovieCardProps) {
               </div>
             </div>
 
-            {/* 底部按鈕區 */}
-            <div className="mt-3 pt-3 border-t border-gray-700 space-y-2">
-              <button 
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
-                onClick={() => console.log('Add to watchlist:', movie.id)}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                  <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                </svg>
-                加入 Watchlist
-              </button>
-              
-              <button 
-                className="w-full bg-yellow-600 hover:bg-yellow-700 text-white text-sm py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
-                onClick={() => console.log('Add to top 10:', movie.id)}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                加入 Top 10 List
-              </button>
-            </div>
+            {/* 底部按鈕區 - 只在電影存在於資料庫時顯示 */}
+            {isInDatabase && (
+              <div className="mt-3 pt-3 border-t border-gray-700 space-y-2">
+                <button 
+                  className={`w-full text-white text-sm py-2 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                    inWatchlist 
+                      ? 'bg-red-600 hover:bg-red-700' 
+                      : 'bg-purple-600 hover:bg-purple-700'
+                  } ${isWatchlistLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  onClick={handleWatchlistToggle}
+                  disabled={isWatchlistLoading}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    {inWatchlist ? (
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    ) : (
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                    )}
+                    <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                  </svg>
+                  {isWatchlistLoading ? '處理中...' : (inWatchlist ? '從 Watchlist 移除' : '加入 Watchlist')}
+                </button>
+                
+                <button 
+                  className={`w-full text-white text-sm py-2 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                    inTop10 
+                      ? 'bg-red-600 hover:bg-red-700' 
+                      : 'bg-yellow-600 hover:bg-yellow-700'
+                  } ${isTop10Loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  onClick={handleTop10Toggle}
+                  disabled={isTop10Loading}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  {isTop10Loading ? '處理中...' : (inTop10 ? '從 Top 10 移除' : '加入 Top 10 List')}
+                </button>
+              </div>
+            )}
+            
+            {/* 非資料庫電影提示 */}
+            {isInDatabase === false && (
+              <div className="mt-3 pt-3 border-t border-gray-700">
+                <p className="text-xs text-gray-400 text-center">
+                  💡 此電影尚未加入資料庫
+                </p>
+              </div>
+            )}
 
             {/* 評分顯示 */}
             <div className="mt-2 text-center">

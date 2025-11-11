@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 // 18個 mood labels - 從 backend/app/services/mapping_tables.py 取得
 const MOOD_LABELS = [
   { id: "失戀", label: "失戀", category: "情緒", description: "心碎、需要療癒" },
@@ -28,14 +30,46 @@ interface MoodOrbitProps {
 }
 
 export function MoodOrbit({ selectedMoods, onMoodsChange }: MoodOrbitProps) {
+  // 響應式視窗寬度狀態
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 1024
+  );
+
+  // 監聽視窗大小變化
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    // 初始化時也觸發一次
+    handleResize();
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // 計算雙圈排列位置 - 真正的左右弧形分佈
   // 左側弧形：90° 到 270° (9點鐘到3點鐘，經過左側)
   // 右側弧形：270° 到 450° (3點鐘到9點鐘，經過右側) = -90° 到 90°
   // 避開：正上方 (-30° 到 30°) 和正下方 (150° 到 210°)
   
   const calculateDualCirclePosition = (index: number) => {
-    const innerRadius = 380;  // 內圈半徑（擴大）
-    const outerRadius = 590;  // 外圈半徑（擴大）
+    // 響應式半徑 - 根據視窗寬度調整
+    // Mobile (< 640px): 基礎半徑
+    // Tablet (640-1024px): 中等半徑
+    // Desktop (>= 1024px): 完整半徑
+    
+    let radiusScale = 1;
+    if (viewportWidth < 480) {
+      radiusScale = 0.32; // 超小手機: 32% 縮放
+    } else if (viewportWidth < 640) {
+      radiusScale = 0.42; // 手機: 42% 縮放
+    } else if (viewportWidth < 1024) {
+      radiusScale = 0.65; // 平板: 65% 縮放
+    }
+    
+    const innerRadius = 380 * radiusScale;  // 內圈半徑（響應式）
+    const outerRadius = 590 * radiusScale;  // 外圈半徑（響應式）
     
     // 允許擺放區域（用戶定義）：
     // 第一圈（內圈）- 右側 60°-150°，左側 210°-300°
@@ -111,8 +145,11 @@ export function MoodOrbit({ selectedMoods, onMoodsChange }: MoodOrbitProps) {
             <button
               key={mood.id}
               onClick={() => toggleMood(mood.id)}
-              className={`absolute pointer-events-auto px-3 py-1.5 rounded-full text-xs font-medium
+              className={`absolute pointer-events-auto rounded-full 
+                        px-2 py-1 sm:px-3 sm:py-1.5
+                        text-[9px] sm:text-[10px] md:text-xs font-medium
                         transition-all duration-300 whitespace-nowrap group
+                        min-h-[24px] sm:min-h-[28px] md:min-h-auto
                         ${isSelected 
                           ? 'bg-white/90 text-black scale-110 shadow-[0_0_30px_rgba(168,85,247,0.9)] border-2 border-purple-200' 
                           : 'bg-black/60 text-white/80 border border-white/30 hover:bg-white/10 hover:scale-105 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] hover:border-purple-400/50'

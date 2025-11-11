@@ -1,11 +1,26 @@
 'use client'; 
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import Slider from 'react-slick'; 
-import Link from 'next/link';
-import { FaHeart, FaCalendarAlt, FaEye } from 'react-icons/fa'; 
+import { PageLayout } from '@/components/layouts';
+import { MovieCard } from '@/components/MovieCard';
+import { Api, type FrontendMovie } from '@/lib/api';
+import { movieExistsCache } from '@/lib/movieExistsCache';
+
+// 將 FrontendMovie 轉換為 RecommendedMovie 格式
+function toRecommendedMovie(movie: FrontendMovie) {
+  return {
+    id: movie.id.toString(),
+    title: movie.title,
+    overview: movie.overview,
+    poster_url: movie.poster_url || '',
+    vote_average: movie.vote_average,
+    release_year: movie.release_year ?? undefined,
+  };
+}
 
 // 這是 react-slick 需要的設定
 const sliderSettings = {
@@ -15,144 +30,133 @@ const sliderSettings = {
   slidesToShow: 1,
   slidesToScroll: 1,
   autoplay: true,
-  arrows: true, // [修改！] false -> true，開啟箭頭 (你的需求 #2)
+  arrows: true,
 };
 
-// (我們刪除了 collectionsSliderSettings)
-
 export function HomeFeed() {
+  const [randomMovies, setRandomMovies] = useState<FrontendMovie[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchRandomMovies();
+  }, []);
+
+  const fetchRandomMovies = async () => {
+    try {
+      setIsLoading(true);
+      const movies = await Api.movies.getRandom(4); // 只獲取 4 部電影
+      setRandomMovies(movies);
+      
+      // 🎯 優化：預先標記這些電影為存在於 DB（來自 DB 的隨機電影）
+      const tmdbIds = movies.map(m => m.id);
+      movieExistsCache.markAsExists(tmdbIds);
+      
+      setError(null);
+    } catch (err: any) {
+      console.error('Failed to fetch random movies:', err);
+      setError('載入電影失敗，請稍後再試');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   return (
-    <div className="container-fluid mx-auto px-4 py-4">
-      
-      {/* --- 1. 頂部輪播 (Slick Slider) --- */}
-      {/* [修改！] 加上 px-10 relative 來為箭頭騰出空間 */}
-      <div className="w-full mb-4 px-10 relative">
-        <Slider {...sliderSettings}>
-          {/* (我們假設圖片在 public/img/ 裡面) */}
-          <div>
-            <img src="/img/slider1.jpg" className="img-fluid rounded w-full" alt="Slider 1" />
-          </div>
-          <div>
-            <img src="/img/slider2.jpg" className="img-fluid rounded w-full" alt="Slider 2" />
-          </div>
-          <div>
-            <img src="/img/slider3.jpg" className="img-fluid rounded w-full" alt="Slider 3" />
-          </div>
-        </Slider>
-      </div>
-
-      {/* --- 2. "Movies" 標題列 (保持不變) --- */}
-      <div className="flex items-center justify-between mt-4 mb-3">
-        <h1 className="text-xl font-bold text-gray-900">Movies</h1>
-        <Link href="/movies" className="text-xs text-gray-700 hidden sm:inline-block">
-          View All <FaEye className="inline-block ml-1" />
-        </Link>
-      </div>
-
-      {/* --- 3. "Movies" 內容卡片 (保持不變) --- */}
-      <div className="flex flex-wrap -mx-2">
-        
-        {/* 卡片 1 (重複結構) */}
-        <div className="w-full xl:w-1/4 md:w-1/2 mb-4 px-2">
-          <div className="bg-white shadow rounded-lg border-0 overflow-hidden">
-            <Link href="/movies-detail">
-              <div className="relative">
-                <div className="absolute bg-white shadow-sm rounded text-center p-2 m-2 top-0 left-0">
-                  <h6 className="text-gray-900 mb-0 font-bold"><FaHeart className="inline text-red-500" /> 88%</h6>
-                  <small className="text-gray-500">23,421</small>
-                </div>
-                <img src="/img/m1.jpg" className="w-full h-auto" alt="Jumanji" />
-              </div>
-              <div className="p-3">
-                <h5 className="text-lg font-bold text-gray-900 mb-1">Jumanji: The Next Level</h5>
-                <p className="text-sm">
-                  <small className="text-gray-500">English</small> 
-                  <small className="text-red-500 ml-2">
-                    <FaCalendarAlt className="inline text-gray-400" /> 22 AUG
-                  </small>
-                </p>
-              </div>
-            </Link>
-          </div>
+    <PageLayout>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.5, ease: "easeOut" }}
+        className="space-y-8 py-8"
+      >
+        {/* 頂部輪播 (Slick Slider) */}
+        <div className="w-full mb-8">
+          <Slider {...sliderSettings}>
+            <div>
+              <img src="/img/slider1.jpg" className="w-full rounded-lg" alt="Slider 1" />
+            </div>
+            <div>
+              <img src="/img/slider2.jpg" className="w-full rounded-lg" alt="Slider 2" />
+            </div>
+            <div>
+              <img src="/img/slider3.jpg" className="w-full rounded-lg" alt="Slider 3" />
+            </div>
+          </Slider>
         </div>
 
-        {/* 卡片 2 (重複結構) */}
-        <div className="w-full xl:w-1/4 md:w-1/2 mb-4 px-2">
-          <div className="bg-white shadow rounded-lg border-0 overflow-hidden">
-            <Link href="/movies-detail">
-              <div className="relative">
-                <div className="absolute bg-white shadow-sm rounded text-center p-2 m-2 top-0 left-0">
-                  <h6 className="text-gray-900 mb-0 font-bold"><FaHeart className="inline text-red-500" /> 50%</h6>
-                  <small className="text-gray-500">8,784</small>
-                </div>
-                <img src="/img/m2.jpg" className="w-full h-auto" alt="Gemini Man" />
-              </div>
-              <div className="p-3">
-                <h5 className="text-lg font-bold text-gray-900 mb-1">Gemini Man</h5>
-                <p className="text-sm">
-                  <small className="text-gray-500">English</small> 
-                  <small className="text-red-500 ml-2">
-                    <FaCalendarAlt className="inline text-gray-400" /> 22 AUG
-                  </small>
-                </p>
-              </div>
-            </Link>
-          </div>
-        </div>
-        
-        {/* 卡片 3 (重複結構) */}
-        <div className="w-full xl:w-1/4 md:w-1/2 mb-4 px-2">
-           <div className="bg-white shadow rounded-lg border-0 overflow-hidden">
-            <Link href="/movies-detail">
-              <div className="relative">
-                <div className="absolute bg-white shadow-sm rounded text-center p-2 m-2 top-0 left-0">
-                  <h6 className="text-gray-900 mb-0 font-bold"><FaHeart className="inline text-red-500" /> 20%</h6>
-                  <small className="text-gray-500">69,123</small>
-                </div>
-                <img src="/img/m3.jpg" className="w-full h-auto" alt="The Current War" />
-              </div>
-              <div className="p-3">
-                <h5 className="text-lg font-bold text-gray-900 mb-1">The Current War</h5>
-                <p className="text-sm">
-                  <small className="text-gray-500">English</small> 
-                  <small className="text-red-500 ml-2">
-                    <FaCalendarAlt className="inline text-gray-400" /> 22 AUG
-                  </small>
-                </p>
-              </div>
-            </Link>
-          </div>
-        </div>
-        
-        {/* 卡片 4 (重複結構) */}
-        <div className="w-full xl:w-1/4 md:w-1/2 mb-4 px-2">
-           <div className="bg-white shadow rounded-lg border-0 overflow-hidden">
-            <Link href="/movies-detail">
-              <div className="relative">
-                <div className="absolute bg-white shadow-sm rounded text-center p-2 m-2 top-0 left-0">
-                  <h6 className="text-gray-900 mb-0 font-bold"><FaHeart className="inline text-red-500" /> 74%</h6>
-                  <small className="text-gray-500">88,865</small>
-                </div>
-                <img src="/img/m4.jpg" className="w-full h-auto" alt="Charlie's Angels" />
-              </div>
-              <div className="p-3">
-                <h5 className="text-lg font-bold text-gray-900 mb-1">Charlie's Angels</h5>
-                <p className="text-sm">
-                  <small className="text-gray-500">English</small> 
-                  <small className="text-red-500 ml-2">
-                    <FaCalendarAlt className="inline text-gray-400" /> 22 AUG
-                  </small>
-                </p>
-              </div>
-            </Link>
-          </div>
-        </div>
+        {/* Page Title */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="text-center"
+        >
+          <h1 className="text-5xl md:text-6xl font-bold mb-3
+                       bg-gradient-to-r from-purple-400 via-pink-500 to-red-500
+                       bg-clip-text text-transparent
+                       drop-shadow-[0_0_30px_rgba(168,85,247,0.6)]">
+            隨機推薦
+          </h1>
+          <p className="text-gray-400 text-sm md:text-base">
+            從資料庫隨機挑選的精選電影
+          </p>
+        </motion.div>
 
-      </div>
-      
-      {/* --- [修改！] "Collections" 區塊已被刪除 --- */}
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex flex-col justify-center items-center py-20">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full"
+            />
+            <p className="text-white text-xl mt-6">載入推薦電影中...</p>
+          </div>
+        )}
 
-    </div>
+        {/* Error State */}
+        {error && !isLoading && (
+          <div className="text-center py-20">
+            <p className="text-xl text-red-400 mb-4">{error}</p>
+            <button
+              onClick={fetchRandomMovies}
+              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              重試
+            </button>
+          </div>
+        )}
+
+        {/* Movies Grid */}
+        {!isLoading && !error && randomMovies.length === 0 && (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4 opacity-30">🎬</div>
+            <p className="text-xl text-gray-400">目前沒有電影資料</p>
+          </div>
+        )}
+
+        {!isLoading && !error && randomMovies.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {randomMovies.map((movie, index) => (
+              <motion.div
+                key={movie.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.4, 
+                  delay: index * 0.05,
+                  ease: [0.22, 1, 0.36, 1]
+                }}
+              >
+                <MovieCard 
+                  movie={toRecommendedMovie(movie)}
+                  // 移除 callbacks - 依賴 movieListStore 的觀察者模式自動更新
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </motion.div>
+    </PageLayout>
   );
 }
