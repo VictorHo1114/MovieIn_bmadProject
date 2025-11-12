@@ -65,6 +65,7 @@ export interface DailyQuiz {
   category: string | null;
   movie_reference: MovieReference | null;
   correct_answer?: number; // Optional: shown after answering
+  explanation?: string | null; // Optional: shown after answering
 }
 
 export interface QuizAttempt {
@@ -104,6 +105,15 @@ export interface QuizSubmitResponse {
   explanation: string | null;
   user_stats: UserStats;
   movie_reference: MovieReference | null;
+}
+
+export interface AllTodayQuizzesResponse {
+  quizzes: DailyQuiz[];
+  user_attempts: QuizAttempt[];
+  daily_attempts: number;
+  daily_limit: number;
+  is_first_round: boolean;
+  time_until_next: string | null;
 }
 
 export const Api = {
@@ -220,7 +230,10 @@ export const Api = {
     getToday: () =>
       getJSON<TodayQuizResponse>("http://127.0.0.1:8000/api/v1/quiz/today"),
     
-    submit: (data: { quiz_id: number; answer: number | null; time_spent: number }) =>
+    getAllToday: () =>
+      getJSON<AllTodayQuizzesResponse>("http://127.0.0.1:8000/api/v1/quiz/today/all"),
+    
+    submit: (data: { quiz_id: number; answer: number | null; time_spent: number; practice_mode?: boolean }) =>
       postJSON<QuizSubmitResponse>("http://127.0.0.1:8000/api/v1/quiz/submit", data),
   },
 };

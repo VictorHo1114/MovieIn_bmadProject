@@ -12,7 +12,8 @@ from app.schemas.quiz import (
     QuizAttemptCreate,
     QuizSubmitResponse,
     TodayQuizResponse,
-    QuizHistoryResponse
+    QuizHistoryResponse,
+    AllTodayQuizzesResponse
 )
 from app.services.quiz_service import QuizService
 
@@ -33,6 +34,21 @@ async def get_today_quiz(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get today's quiz: {str(e)}"
+        )
+
+
+@router.get("/today/all", response_model=AllTodayQuizzesResponse)
+async def get_all_today_quizzes(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all today's quizzes (for replay mode)"""
+    try:
+        return QuizService.get_all_today_quizzes(db, current_user.user_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get all today's quizzes: {str(e)}"
         )
 
 

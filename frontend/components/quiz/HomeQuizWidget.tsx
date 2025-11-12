@@ -1,90 +1,128 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Api, type TodayQuizResponse } from '@/lib/api';
-import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { Api, type AllTodayQuizzesResponse, type DailyQuiz } from '@/lib/api';
+import { QuestionCard } from './QuestionCard';
 
-const DIFFICULTY_CONFIG = {
-  easy: { label: '簡單', icon: '⭐', color: 'from-green-400 to-emerald-500' },
-  medium: { label: '中等', icon: '⭐⭐', color: 'from-yellow-400 to-orange-500' },
-  hard: { label: '困難', icon: '⭐⭐⭐', color: 'from-red-400 to-pink-500' },
-};
+interface CardState {
+  isFlipped: boolean;
+  result: {
+    is_correct: boolean;
+    points_earned: number;
+    explanation: string | null;
+  } | null;
+}
 
 export function HomeQuizWidget() {
-  const [quizData, setQuizData] = useState<TodayQuizResponse | null>(null);
+  const [allQuizData, setAllQuizData] = useState<AllTodayQuizzesResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showResult, setShowResult] = useState(false);
-  const router = useRouter();
+  
+  // State for each of the 3 cards (no need to track selectedAnswer here)
+  const [cardStates, setCardStates] = useState<CardState[]>([
+    { isFlipped: false, result: null },
+    { isFlipped: false, result: null },
+    { isFlipped: false, result: null },
+  ]);
 
   useEffect(() => {
-    fetchTodayQuiz();
+    fetchAllTodayQuizzes();
   }, []);
 
-  const fetchTodayQuiz = async () => {
+  const fetchAllTodayQuizzes = async () => {
     try {
       setIsLoading(true);
-      const data = await Api.quiz.getToday();
-      setQuizData(data);
-      setShowResult(data.has_answered);
+      const data = await Api.quiz.getAllToday();
+      setAllQuizData(data);
+      
+      // Initialize card states based on existing attempts
+      const newCardStates = data.quizzes.map((quiz) => {
+        const attempt = data.user_attempts.find(a => a.quiz_id === quiz.id);
+        if (attempt) {
+          return {
+            isFlipped: true,
+            result: {
+              is_correct: attempt.is_correct,
+              points_earned: attempt.points_earned,
+              explanation: null, // We'll show quiz explanation on flip
+            },
+          };
+        }
+        return { isFlipped: false, result: null };
+      });
+      setCardStates(newCardStates);
       setError(null);
     } catch (err: any) {
-      console.error('Failed to fetch quiz:', err);
+      console.error('Failed to fetch all quizzes:', err);
       setError('載入失敗');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSubmit = async () => {
-    if (!quizData?.quiz || selectedAnswer === null || isSubmitting) return;
-
+  const handleSubmit = async (answer: number, quizId: number, cardIndex: number) => {
     try {
-      setIsSubmitting(true);
       const result = await Api.quiz.submit({
-        quiz_id: quizData.quiz.id,
-        answer: selectedAnswer,
+        quiz_id: quizId,
+        answer: answer,
         time_spent: 15,
+        // Backend auto-detects first round, no need to send practice_mode
       });
 
-      // Update quiz data with result
-      setQuizData({
-        ...quizData,
-        has_answered: true,
-        daily_attempts: quizData.daily_attempts + 1,
-        remaining_attempts: quizData.remaining_attempts - 1,
-        user_attempt: {
-          id: 0,
-          quiz_id: quizData.quiz.id,
-          user_answer: selectedAnswer,
+      // Update card state with result and flip the card
+      const newCardStates = [...cardStates];
+      newCardStates[cardIndex] = {
+        isFlipped: true,
+        result: {
           is_correct: result.is_correct,
           points_earned: result.points_earned,
-          time_spent: 15,
-          answered_at: new Date().toISOString(),
+          explanation: null,
         },
-      });
-      setShowResult(true);
+      };
+      setCardStates(newCardStates);
 
-      // 廣播積分更新事件，讓 Profile 頁面重新載入資料
-      if (result.is_correct) {
+      // Broadcast points update event if first round and correct
+      if (result.is_correct && result.points_earned > 0) {
         window.dispatchEvent(new CustomEvent('quizPointsUpdated'));
+      }
+
+      // Update allQuizData to reflect new attempt
+      if (allQuizData) {
+        setAllQuizData({
+          ...allQuizData,
+          user_attempts: [
+            ...allQuizData.user_attempts,
+            {
+              id: Date.now(), // Temporary ID
+              quiz_id: quizId,
+              user_answer: answer,
+              is_correct: result.is_correct,
+              points_earned: result.points_earned,
+              time_spent: 15,
+              answered_at: new Date().toISOString(),
+            },
+          ],
+          is_first_round: false, // After first submit, it's no longer first round
+        });
       }
     } catch (err: any) {
       console.error('Failed to submit answer:', err);
       alert('提交失敗，請稍後再試');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  const handleNextQuiz = async () => {
-    setSelectedAnswer(null);
-    setShowResult(false);
-    await fetchTodayQuiz();
+  const handleReplayAll = () => {
+    // Flip all cards back to front (question side)
+    setCardStates(prev =>
+      prev.map(state => ({
+        isFlipped: false,
+        result: null,
+      }))
+    );
   };
+
+  const allCardsAnswered = cardStates.every(state => state.isFlipped);
 
   if (isLoading) {
     return (
@@ -100,128 +138,73 @@ export function HomeQuizWidget() {
     );
   }
 
-  if (error || !quizData?.quiz) {
-    return null; // 沒有題目時不顯示
+  if (error || !allQuizData || allQuizData.quizzes.length === 0) {
+    return null; // No quizzes available
   }
 
-  const { quiz, user_attempt, has_answered } = quizData;
-  const difficultyConfig = DIFFICULTY_CONFIG[quiz.difficulty as keyof typeof DIFFICULTY_CONFIG];
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-2xl"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">🎬</span>
-          <div>
-            <h3 className="text-xl font-bold text-white">每日電影問答</h3>
-            <p className="text-sm text-gray-400">
-              {quiz.category || '電影知識'} • {quizData.daily_attempts}/{quizData.daily_limit} 已完成
-            </p>
-          </div>
-        </div>
-        <div className={`px-3 py-1 rounded-full bg-gradient-to-r ${difficultyConfig.color} text-white text-sm font-semibold`}>
-          {difficultyConfig.icon} {difficultyConfig.label}
-        </div>
+    <div className="space-y-6">
+      {/* Section Title */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="text-center"
+      >
+        <h2 className="text-4xl md:text-5xl font-bold mb-3
+                     bg-gradient-to-r from-purple-400 via-pink-500 to-red-500
+                     bg-clip-text text-transparent
+                     drop-shadow-[0_0_30px_rgba(168,85,247,0.6)]">
+          每日電影問答
+        </h2>
+        <p className="text-gray-400 text-sm md:text-base">
+          挑戰你的電影知識，每日 {allQuizData.daily_limit} 題 • 已完成 {allQuizData.daily_attempts}/{allQuizData.daily_limit}
+          {!allQuizData.is_first_round && (
+            <span className="ml-2 text-yellow-400">• 🔁 重玩模式（不計分）</span>
+          )}
+        </p>
+      </motion.div>
+
+      {/* 3 Question Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {allQuizData.quizzes.map((quiz, index) => (
+          <QuestionCard
+            key={quiz.id}
+            quiz={quiz}
+            index={index}
+            onSubmit={(answer: number) => handleSubmit(answer, quiz.id, index)}
+            result={cardStates[index].result}
+            isFlipped={cardStates[index].isFlipped}
+            isFirstRound={allQuizData.is_first_round}
+            disabled={cardStates[index].isFlipped}
+          />
+        ))}
       </div>
 
-      {/* Question */}
-      <div className="bg-gray-800/50 rounded-xl p-4 mb-4">
-        <p className="text-white text-lg leading-relaxed">{quiz.question}</p>
-      </div>
-
-      {/* Options or Result */}
-      <AnimatePresence mode="wait">
-        {!showResult ? (
-          <motion.div
-            key="options"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="space-y-3 mb-4"
+      {/* Replay All Button - Show when all cards are answered */}
+      {allCardsAnswered && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex justify-center"
+        >
+          <motion.button
+            onClick={handleReplayAll}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="bg-gradient-to-r from-orange-600 to-yellow-600 text-white font-bold px-8 py-4 rounded-xl hover:from-orange-700 hover:to-yellow-700 transition-all shadow-lg hover:shadow-orange-500/50"
           >
-            {quiz.options.map((option, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedAnswer(index)}
-                disabled={isSubmitting}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-all ${
-                  selectedAnswer === index
-                    ? 'bg-purple-600 text-white border-2 border-purple-400'
-                    : 'bg-gray-800/50 text-gray-300 border-2 border-gray-700 hover:border-purple-500'
-                }`}
-              >
-                <span className="font-semibold mr-2">{String.fromCharCode(65 + index)}.</span>
-                {option}
-              </button>
-            ))}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="result"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-4"
-          >
-            <div className={`rounded-xl p-4 ${user_attempt?.is_correct ? 'bg-green-900/30 border-2 border-green-500' : 'bg-red-900/30 border-2 border-red-500'}`}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">{user_attempt?.is_correct ? '✅' : '❌'}</span>
-                <span className="text-white font-bold text-lg">
-                  {user_attempt?.is_correct ? '答對了！' : '答錯了'}
-                </span>
-              </div>
-              <p className="text-gray-300 text-sm">
-                正確答案：<span className="font-semibold">{String.fromCharCode(65 + (quiz.correct_answer ?? 0))}. {quiz.options[quiz.correct_answer ?? 0]}</span>
-              </p>
-              {user_attempt?.is_correct && (
-                <p className="text-green-400 text-sm mt-2">🎉 獲得 {user_attempt.points_earned} 積分！</p>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Action Button */}
-      <div className="flex gap-3">
-        {!showResult ? (
-          <button
-            onClick={handleSubmit}
-            disabled={selectedAnswer === null || isSubmitting}
-            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold py-3 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? '提交中...' : '提交答案'}
-          </button>
-        ) : (
-          <>
-            {quizData.remaining_attempts > 0 ? (
-              <button
-                onClick={handleNextQuiz}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold py-3 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all"
-              >
-                下一題 ({quizData.remaining_attempts} 題待答)
-              </button>
-            ) : (
-              <div className="flex-1 bg-gray-800/50 text-gray-400 font-semibold py-3 rounded-lg text-center">
-                🎉 今日題目全部完成！
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Movie Reference */}
-      {quiz.movie_reference && (
-        <div className="mt-4 pt-4 border-t border-gray-700">
-          <p className="text-sm text-gray-400">
-            💡 電影：<span className="text-purple-400 font-semibold">{quiz.movie_reference.title}</span> ({quiz.movie_reference.year})
-          </p>
-        </div>
+            <span className="flex items-center gap-3">
+              <span className="text-2xl">🔄</span>
+              <span>再玩一次</span>
+              <span className="bg-white/20 px-3 py-1 rounded-md text-sm">
+                翻回所有卡片
+              </span>
+            </span>
+          </motion.button>
+        </motion.div>
       )}
-    </motion.div>
+    </div>
   );
 }

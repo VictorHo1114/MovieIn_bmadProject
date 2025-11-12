@@ -90,11 +90,12 @@ class QuizService:
     
     @staticmethod
     def submit_answer(db: Session, user_id: UUID, submission: QuizAttemptCreate) -> QuizSubmitResponse:
-        """Submit answer"""
+        """Submit answer - auto-detects first round vs replay"""
         quiz = db.query(DailyQuiz).filter(DailyQuiz.id == submission.quiz_id).first()
         if not quiz:
             raise ValueError("Quiz not found")
         
+        # Check if user has already answered this specific quiz (first round check)
         existing_attempt = db.query(QuizAttempt).filter(
             and_(
                 QuizAttempt.user_id == user_id,
@@ -102,7 +103,12 @@ class QuizService:
             )
         ).first()
         
-        if existing_attempt:
+        # Auto-detect: If already answered before, force practice mode (replay)
+        is_first_round = existing_attempt is None
+        is_practice_mode = not is_first_round or submission.practice_mode
+        
+        # Prevent duplicate attempts in first round
+        if is_first_round and existing_attempt:
             raise ValueError("Already answered this quiz")
         
         user = db.query(User).filter(User.user_id == user_id).first()
@@ -113,23 +119,27 @@ class QuizService:
         previous_level = user.level or 1
         
         is_correct = submission.answer == quiz.correct_answer if submission.answer is not None else False
-        points_earned = 10 if is_correct else 0
         
-        attempt = QuizAttempt(
-            user_id=user_id,
-            quiz_id=submission.quiz_id,
-            user_answer=submission.answer,
-            is_correct=is_correct,
-            points_earned=points_earned,
-            time_spent=submission.time_spent
-        )
-        db.add(attempt)
+        # Points only in first round when correct
+        points_earned = 0 if is_practice_mode else (10 if is_correct else 0)
         
-        if points_earned > 0:
-            user.total_points = (user.total_points or 0) + points_earned
-        
-        db.commit()
-        db.refresh(user)
+        # Only save attempt record in first round
+        if is_first_round:
+            attempt = QuizAttempt(
+                user_id=user_id,
+                quiz_id=submission.quiz_id,
+                user_answer=submission.answer,
+                is_correct=is_correct,
+                points_earned=points_earned,
+                time_spent=submission.time_spent
+            )
+            db.add(attempt)
+            
+            if points_earned > 0:
+                user.total_points = (user.total_points or 0) + points_earned
+            
+            db.commit()
+            db.refresh(user)
         
         global_rank = QuizService._calculate_global_rank(db, user_id)
         friend_rank = QuizService._calculate_friend_rank(db, user_id)
@@ -182,6 +192,50 @@ class QuizService:
         return QuizHistoryResponse(
             attempts=history_items,
             stats=stats
+        )
+    
+    @staticmethod
+    def get_all_today_quizzes(db: Session, user_id: UUID):
+        """Get all today's quizzes (for replay mode)"""
+        from app.schemas.quiz import AllTodayQuizzesResponse, DailyQuizWithAnswer, QuizAttemptResponse
+        
+        today = date.today()
+        DAILY_LIMIT = 3
+        
+        # Get all today's quizzes
+        all_quizzes = db.query(DailyQuiz).filter(DailyQuiz.date == today).order_by(DailyQuiz.sequence_number).all()
+        
+        if not all_quizzes:
+            return AllTodayQuizzesResponse(
+                quizzes=[],
+                user_attempts=[],
+                daily_attempts=0,
+                daily_limit=DAILY_LIMIT,
+                is_first_round=True,
+                time_until_next=QuizService._calculate_time_until_next()
+            )
+        
+        # Get user's attempts for today
+        today_attempts = db.query(QuizAttempt).filter(
+            and_(
+                QuizAttempt.user_id == user_id,
+                QuizAttempt.quiz_id.in_([q.id for q in all_quizzes])
+            )
+        ).all()
+        
+        is_first_round = len(today_attempts) == 0
+        
+        # Return quizzes with answers and explanations
+        quiz_with_answers = [DailyQuizWithAnswer.model_validate(q) for q in all_quizzes]
+        attempt_responses = [QuizAttemptResponse.model_validate(a) for a in today_attempts]
+        
+        return AllTodayQuizzesResponse(
+            quizzes=quiz_with_answers,
+            user_attempts=attempt_responses,
+            daily_attempts=len(today_attempts),
+            daily_limit=DAILY_LIMIT,
+            is_first_round=is_first_round,
+            time_until_next=QuizService._calculate_time_until_next()
         )
     
     @staticmethod

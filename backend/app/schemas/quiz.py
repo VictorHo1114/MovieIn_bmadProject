@@ -53,6 +53,7 @@ class QuizAttemptCreate(BaseModel):
     quiz_id: int
     answer: Optional[int] = Field(None, ge=0, le=3, description="Selected answer index (NULL=timeout)")
     time_spent: int = Field(..., ge=0, le=30, description="Time spent in seconds")
+    practice_mode: bool = Field(default=False, description="Practice mode (no points, repeatable)")
 
 
 class QuizAttemptResponse(BaseModel):
@@ -99,6 +100,16 @@ class TodayQuizResponse(BaseModel):
     daily_attempts: int = Field(default=0, description="Number of quizzes answered today")
     daily_limit: int = Field(default=3, description="Daily quiz limit")
     remaining_attempts: int = Field(default=3, description="Remaining attempts today")
+
+
+class AllTodayQuizzesResponse(BaseModel):
+    """All today's quizzes response (for replay mode)"""
+    quizzes: List[DailyQuizWithAnswer]  # Changed to include answers and explanations
+    user_attempts: List[QuizAttemptResponse]
+    daily_attempts: int
+    daily_limit: int = 3
+    is_first_round: bool
+    time_until_next: Optional[str] = None
 
 
 class QuizHistoryItem(BaseModel):
