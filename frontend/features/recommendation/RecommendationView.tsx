@@ -101,7 +101,7 @@ export function RecommendationView() {
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
-              className="w-full flex flex-col gap-6"
+              className="w-full flex flex-col gap-6 relative z-[200]"
             >
               <FilterControls
                 selectedEras={selectedEras}
@@ -174,7 +174,7 @@ export function RecommendationView() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
-              className="absolute top-full left-1/2 -translate-x-1/2 -mt-26 flex flex-col gap-4 scale-90 origin-top"
+              className="absolute top-full left-1/2 -translate-x-1/2 -mt-26 flex flex-col gap-4 scale-90 origin-top z-[200]"
               style={{ width: '350px' }}
             >
               <FilterControls

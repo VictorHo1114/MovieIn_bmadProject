@@ -106,9 +106,9 @@ export function FilterControls({
   };
 
   return (
-    <div className="w-full grid grid-cols-2 gap-2">
+    <div className="w-full grid grid-cols-2 gap-2 relative z-[200]">
       {/* 年代選擇器 - 下拉式 */}
-      <div className="relative" ref={eraRef}>
+      <div className="relative z-[210]" ref={eraRef}>
         <div 
           onClick={() => {
             if (!isEraOpen) {
@@ -150,9 +150,10 @@ export function FilterControls({
 
         {/* Dropdown Options */}
         {isEraOpen && (
-          <div className={`absolute left-0 right-0 ${eraDropDirection === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'} 
-                        bg-black/95 border border-white/30 
-                        rounded-md shadow-xl z-[100] max-h-40 overflow-y-auto backdrop-blur-md`}>
+          <div 
+            className={`absolute ${eraDropDirection === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'} left-0 w-full bg-black/95 border border-white/30 
+                        rounded-md shadow-[0_0_30px_rgba(0,0,0,0.9)] z-[220] max-h-40 overflow-y-auto backdrop-blur-md`}
+          >
             {ERA_OPTIONS.map(era => {
               const isSelected = selectedEras.includes(era.id);
               const isDisabled = !isSelected && selectedEras.length >= 3;
@@ -178,7 +179,7 @@ export function FilterControls({
       </div>
 
       {/* 類型選擇器 - 下拉式 */}
-      <div className="relative" ref={genreRef}>
+      <div className="relative z-[210]" ref={genreRef}>
         <div 
           onClick={() => {
             if (!isGenreOpen) {
@@ -217,9 +218,10 @@ export function FilterControls({
 
         {/* Dropdown Options */}
         {isGenreOpen && (
-          <div className={`absolute left-0 right-0 ${genreDropDirection === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'} 
-                        bg-black/95 border border-white/30 
-                        rounded-md shadow-xl z-[100] max-h-40 overflow-y-auto backdrop-blur-md`}>
+          <div 
+            className={`absolute ${genreDropDirection === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'} left-0 w-full bg-black/95 border border-white/30 
+                        rounded-md shadow-[0_0_30px_rgba(0,0,0,0.9)] z-[220] max-h-40 overflow-y-auto backdrop-blur-md`}
+          >
             {GENRE_OPTIONS.map(genre => {
               const isSelected = selectedGenres.includes(genre);
               const isDisabled = !isSelected && selectedGenres.length >= 3;

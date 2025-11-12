@@ -28,23 +28,28 @@ MOOD_TAGS_REFERENCE = [
     "escapist", "fantastical", "magical", "imaginative",
 ]
 
-def analyze_batch(movies_batch):
-    """批次分析多部電影"""
-    results = []
+def analyze_movie(tmdb_id, title, overview, genres, keywords, max_retries=3):
+    """分析單部電影並返回 mood_tags"""
+    # 提取 genre 名稱
+    genre_names = []
+    if genres:
+        for g in genres:
+            if isinstance(g, dict):
+                genre_names.append(g.get('name', ''))
+            else:
+                genre_names.append(str(g))
     
-    for movie in movies_batch:
-        tmdb_id, title, overview, genres, keywords = movie
-        
-        # 簡化 prompt
-        prompt = f"""電影: {title}
-類型: {", ".join(genres[:3]) if genres else "unknown"}
+    # 簡化 prompt
+    prompt = f"""電影: {title}
+類型: {", ".join(genre_names[:3]) if genre_names else "unknown"}
 關鍵詞: {", ".join(keywords[:5]) if keywords else "none"}
 
 從以下標籤中選 5 個最適合的（逗號分隔）:
-{", ".join(MOOD_TAGS_REFERENCE[:30])}
+{", ".join(MOOD_TAGS_REFERENCE)}
 
 只返回標籤，如: intense, dark, thrilling, epic, atmospheric"""
 
+    for attempt in range(max_retries):
         try:
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -54,56 +59,98 @@ def analyze_batch(movies_batch):
             )
             
             tags_text = response.choices[0].message.content.strip()
-            tags = [tag.strip() for tag in tags_text.split(",")]
+            tags = [tag.strip().lower() for tag in tags_text.split(",")]
             valid_tags = [tag for tag in tags if tag in MOOD_TAGS_REFERENCE][:5]
             
-            results.append((tmdb_id, title, valid_tags))
+            return valid_tags if valid_tags else ["emotional", "engaging"]
             
         except Exception as e:
-            print(f"    {title}: {str(e)[:50]}")
-            results.append((tmdb_id, title, []))
-        
-        time.sleep(0.5)  # 避免 rate limit
+            if attempt < max_retries - 1:
+                print(f"  ⏱️  Retry {attempt + 1}/{max_retries}...")
+                time.sleep(2)
+                continue
+            print(f"  ❌ Error: {str(e)[:50]}")
+            return ["emotional", "engaging"]  # 預設值
     
-    return results
+    return ["emotional", "engaging"]
 
-with engine.connect() as conn:
-    # 只處理前 20 部（測試）
-    result = conn.execute(text("""
-        SELECT tmdb_id, title, overview, genres, keywords
-        FROM movies
-        WHERE keywords IS NOT NULL 
-        AND (mood_tags IS NULL OR mood_tags = \'[]\'::jsonb)
-        ORDER BY popularity DESC
-        LIMIT 20
-    """))
+def update_mood_tags():
+    """更新所有電影的 mood_tags（支援斷點續傳）"""
+    success_count = 0
+    error_count = 0
     
-    movies = result.fetchall()
-    print(f" 處理 {len(movies)} 部電影...")
-    
-    # 批次處理（每 5 部一批）
-    for i in range(0, len(movies), 5):
-        batch = movies[i:i+5]
-        print(f"\n--- Batch {i//5 + 1} ---")
-        
-        results = analyze_batch(batch)
-        
-        # 更新到資料庫
-        for tmdb_id, title, mood_tags in results:
-            if mood_tags:
-                conn.execute(
-                    text("""
-                        UPDATE movies 
-                        SET mood_tags = :mood_tags
-                        WHERE tmdb_id = :tmdb_id
-                    """),
-                    {
-                        "mood_tags": json.dumps(mood_tags),
-                        "tmdb_id": tmdb_id
-                    }
-                )
-                print(f"   {title}: {mood_tags}")
-        
-        conn.commit()
-    
-    print(f"\n 完成！")
+    while True:
+        try:
+            with engine.connect() as conn:
+                # 只獲取還沒有 mood_tags 的電影（斷點續傳）
+                result = conn.execute(text("""
+                    SELECT tmdb_id, title, overview, genres, keywords
+                    FROM movies
+                    WHERE keywords IS NOT NULL 
+                    AND jsonb_array_length(keywords) > 0
+                    AND (mood_tags IS NULL OR jsonb_array_length(mood_tags) = 0)
+                    ORDER BY popularity DESC
+                """))
+                
+                movies = result.fetchall()
+                total = len(movies)
+                
+                if total == 0:
+                    print("✨ 所有電影都已有 mood_tags！")
+                    return
+                
+                print(f"🎬 開始處理 {total} 部電影的 mood_tags...")
+                print("=" * 70)
+                
+                for i, movie in enumerate(movies, 1):
+                    tmdb_id, title, overview, genres, keywords = movie
+                    
+                    try:
+                        mood_tags = analyze_movie(tmdb_id, title, overview, genres, keywords)
+                        
+                        # 更新到資料庫
+                        conn.execute(
+                            text("UPDATE movies SET mood_tags = :mood_tags WHERE tmdb_id = :tmdb_id"),
+                            {"mood_tags": json.dumps(mood_tags), "tmdb_id": tmdb_id}
+                        )
+                        conn.commit()
+                        success_count += 1
+                        print(f"✅ [{i}/{total}] {title[:45]:<45} - {mood_tags}")
+                        
+                    except KeyboardInterrupt:
+                        print("\n\n⚠️  使用者中斷！")
+                        print(f"已處理: {i-1}/{total} 部電影")
+                        print("下次執行會從中斷處繼續（斷點續傳）")
+                        return
+                    except Exception as e:
+                        error_count += 1
+                        print(f"❌ [{i}/{total}] {title[:45]:<45} - Error: {str(e)[:30]}")
+                        # 設定預設值
+                        conn.execute(
+                            text("UPDATE movies SET mood_tags = :mood_tags WHERE tmdb_id = :tmdb_id"),
+                            {"mood_tags": json.dumps(["emotional", "engaging"]), "tmdb_id": tmdb_id}
+                        )
+                        conn.commit()
+                        time.sleep(2)
+                        continue
+                    
+                    # 每 50 部顯示進度
+                    if i % 50 == 0:
+                        print(f"\n📊 進度: {i}/{total} ({i/total*100:.1f}%) | 成功: {success_count} | 錯誤: {error_count}\n")
+                    
+                    time.sleep(0.5)  # 避免 rate limit
+                
+                print("=" * 70)
+                print(f"\n✨ 更新完成！")
+                print(f"   成功: {success_count}")
+                print(f"   錯誤: {error_count}")
+                return
+                
+        except Exception as db_error:
+            print(f"\n⚠️  資料庫連線中斷: {db_error}")
+            print("🔄 5 秒後重新連線...")
+            time.sleep(5)
+            continue
+
+if __name__ == "__main__":
+    update_mood_tags()

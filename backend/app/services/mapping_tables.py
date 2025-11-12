@@ -5,10 +5,11 @@
 """
 
 # ============================================================================
-# 中文  英文 Mood Tags 映射表
+# 中文 → 英文 Mood Tags 映射表
 # ============================================================================
-# 涵蓋 29 個 DB mood_tags，每個 mood 平均 4-7 個中文變體
-# 總計: 141 條映射
+# 涵蓋 44 個 DB mood_tags（包含 GPT 生成的 15 個新 tags）
+# 每個 mood 平均 4-7 個中文變體
+# 總計: 230+ 條映射
 
 ZH_TO_EN_MOOD = {
     # action-packed (動作充沛)
@@ -221,6 +222,99 @@ ZH_TO_EN_MOOD = {
     "夢幻": "whimsical",
     "奇異": "whimsical",
     "想像力": "whimsical",
+    
+    # === 新增: GPT 生成的 Mood Tags ===
+    
+    # atmospheric (氛圍感)
+    "氛圍": "atmospheric",
+    "氛圍感": "atmospheric",
+    "有氛圍": "atmospheric",
+    "意境": "atmospheric",
+    "氣氛": "atmospheric",
+    
+    # comforting (安慰)
+    "安慰": "comforting",
+    "慰藉": "comforting",
+    "撫慰": "comforting",
+    "安撫": "comforting",
+    
+    # contemplative (沉思)
+    "沉思": "contemplative",
+    "思考": "contemplative",
+    "反思": "contemplative",
+    "冥想": "contemplative",
+    
+    # dreamy (夢幻)
+    "夢幻": "dreamy",
+    "如夢": "dreamy",
+    "夢境": "dreamy",
+    "迷幻": "dreamy",
+    
+    # empowering (賦權)
+    "賦權": "empowering",
+    "充滿力量": "empowering",
+    "力量感": "empowering",
+    "增強信心": "empowering",
+    
+    # engaging (吸引人)
+    "吸引人": "engaging",
+    "引人入勝": "engaging",
+    "扣人心弦": "engaging",
+    "投入": "engaging",
+    
+    # fantastical (幻想)
+    "奇幻": "fantastical",
+    "幻想": "fantastical",
+    "奇異世界": "fantastical",
+    
+    # fast-paced (節奏快)
+    "節奏快": "fast-paced",
+    "快節奏": "fast-paced",
+    "緊湊": "fast-paced",
+    "節奏明快": "fast-paced",
+    
+    # gritty (粗獷)
+    "粗獷": "gritty",
+    "寫實": "gritty",
+    "殘酷": "gritty",
+    "硬派": "gritty",
+    "黑暗寫實": "gritty",
+    
+    # heartbreaking (心碎)
+    "心碎": "heartbreaking",
+    "令人心碎": "heartbreaking",
+    "撕心裂肺": "heartbreaking",
+    "虐心": "heartbreaking",
+    
+    # imaginative (富想像力)
+    "富想像力": "imaginative",
+    "創意": "imaginative",
+    "創新": "imaginative",
+    "有創意": "imaginative",
+    
+    # magical (魔幻)
+    "魔幻": "magical",
+    "魔法般": "magical",
+    "神奇": "magical",
+    "奇蹟": "magical",
+    
+    # mind-bending (燒腦)
+    "燒腦": "mind-bending",
+    "腦洞": "mind-bending",
+    "顛覆": "mind-bending",
+    "反轉": "mind-bending",
+    
+    # philosophical (哲學)
+    "哲學": "philosophical",
+    "哲理": "philosophical",
+    "哲思": "philosophical",
+    "人生": "philosophical",
+    
+    # realistic (寫實)
+    "寫實": "realistic",
+    "真實": "realistic",
+    "紀實": "realistic",
+    "現實": "realistic",
 }
 
 # ============================================================================
@@ -423,10 +517,64 @@ MOOD_LABEL_TO_DB_TAGS = {
         "description": "刺激冒險、熱血沸騰"
     },
     "腦洞大開": {
-        "db_mood_tags": ["thought-provoking", "mysterious", "whimsical"],
+        "db_mood_tags": ["thought-provoking", "mysterious", "whimsical", "mind-bending", "imaginative"],
         "db_keywords": ["mind-bending", "surreal", "creative", "imaginative"],
         "category": "體驗",
         "description": "天馬行空、腦洞大開"
+    },
+    "燒腦懸疑": {
+        "db_mood_tags": ["mind-bending", "mysterious", "suspenseful", "philosophical", "contemplative"],
+        "db_keywords": ["mind-bending", "mystery", "plot twist", "complex"],
+        "category": "體驗",
+        "description": "複雜劇情、需要動腦"
+    },
+    "溫暖治癒": {
+        "db_mood_tags": ["heartwarming", "comforting", "feel-good", "uplifting", "cozy"],
+        "db_keywords": ["heartwarming", "wholesome", "comforting", "touching"],
+        "category": "體驗",
+        "description": "溫暖人心、療癒心靈"
+    },
+    "快節奏刺激": {
+        "db_mood_tags": ["fast-paced", "thrilling", "action-packed", "exciting", "intense"],
+        "db_keywords": ["fast-paced", "adrenaline", "action", "thriller"],
+        "category": "體驗",
+        "description": "節奏明快、緊張刺激"
+    },
+    "奇幻冒險": {
+        "db_mood_tags": ["fantastical", "adventurous", "magical", "imaginative", "whimsical"],
+        "db_keywords": ["fantasy", "magic", "adventure", "magical"],
+        "category": "體驗",
+        "description": "魔幻世界、冒險旅程"
+    },
+    "寫實殘酷": {
+        "db_mood_tags": ["gritty", "realistic", "dark", "intense", "thought-provoking"],
+        "db_keywords": ["realistic", "gritty", "harsh reality", "social"],
+        "category": "體驗",
+        "description": "殘酷現實、寫實刻劃"
+    },
+    "夢幻意境": {
+        "db_mood_tags": ["dreamy", "atmospheric", "contemplative", "whimsical", "magical"],
+        "db_keywords": ["surreal", "dreamlike", "atmospheric", "poetic"],
+        "category": "氛圍",
+        "description": "夢幻氛圍、詩意畫面"
+    },
+    "力量滿滿": {
+        "db_mood_tags": ["empowering", "inspiring", "uplifting", "hopeful", "intense"],
+        "db_keywords": ["empowerment", "strength", "courage", "inspiration"],
+        "category": "情緒",
+        "description": "充滿力量、激勵人心"
+    },
+    "扣人心弦": {
+        "db_mood_tags": ["engaging", "suspenseful", "thrilling", "intense", "emotional"],
+        "db_keywords": ["gripping", "engaging", "captivating", "compelling"],
+        "category": "體驗",
+        "description": "引人入勝、難以移開目光"
+    },
+    "心碎虐心": {
+        "db_mood_tags": ["heartbreaking", "emotional", "melancholic", "bittersweet", "dark"],
+        "db_keywords": ["heartbreaking", "tragic", "sad", "tear-jerking"],
+        "category": "情緒",
+        "description": "虐心催淚、情感強烈"
     }
 }
 

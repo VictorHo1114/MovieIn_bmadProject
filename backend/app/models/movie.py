@@ -42,6 +42,11 @@ class Movie(Base):
     production_countries = Column(JSONB, nullable=True)
     spoken_languages = Column(JSONB, nullable=True)
     
+    # 推薦系統相關欄位
+    keywords = Column(JSONB, nullable=True)  # ["time travel", "dystopia", ...]
+    mood_tags = Column(JSONB, nullable=True)  # ["intense", "dark", "thrilling", ...]
+    tone = Column(Text, nullable=True)  # GPT 生成的電影氛圍描述
+    
     # 時間戳記
     created_at = Column(TIMESTAMP(timezone=True), server_default=text("now()"), nullable=False)
     updated_at = Column(TIMESTAMP(timezone=True), server_default=text("now()"), onupdate=text("now()"), nullable=False)
