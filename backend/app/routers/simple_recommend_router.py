@@ -7,7 +7,11 @@ from pydantic import BaseModel
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from db.database import SessionLocal, get_db
-from app.services.simple_recommend import recommend_movies_hybrid, recommend_movies_simple
+from app.services.simple_recommend import (
+    recommend_movies_hybrid, 
+    recommend_movies_simple,
+    recommend_movies_embedding_first  # 新增 Phase 3.6 ⭐
+)
 from app.services.mapping_tables import get_mood_label_list  # 修改導入 ⭐
 
 router = APIRouter(prefix="/api/recommend/v2", tags=["recommend-v2"])
@@ -20,6 +24,7 @@ class SimpleRecommendRequest(BaseModel):
     randomness: Optional[float] = 0.3            # 隨機性參數（0.0-1.0）
     decision_threshold: Optional[int] = 40       # 決策閾值（預設 40）
     use_legacy: Optional[bool] = False           # 是否使用舊版推薦（對照組）
+    use_phase36: Optional[bool] = False          # 是否使用 Phase 3.6 Embedding-First ⭐ 新增
 
 @router.post("/movies")
 async def get_simple_recommendations(
@@ -43,13 +48,46 @@ async def get_simple_recommendations(
     - randomness: 隨機性（0.0 = 完全確定，1.0 = 完全隨機，預設 0.3）
     - decision_threshold: 決策閾值（預設 40，越高越傾向 Embedding）
     - use_legacy: 是否使用舊版推薦（預設 False，供 A/B 測試）
+    - use_phase36: 是否使用 Phase 3.6 Embedding-First（預設 False，新架構）⭐
     
     返回：
     - movies: 推薦電影列表（包含 similarity_score 或 feature_score）
-    - strategy: 使用的推薦策略（"Feature" 或 "Embedding"）
+    - strategy: 使用的推薦策略（"Feature" 或 "Embedding" 或 "Phase36"）
     - decision_score: 決策評分（供調試用）
     """
     try:
+        # ⭐ Phase 3.6: Embedding-First 架構
+        if request.use_phase36:
+            # 將 selected_eras 轉換為 year_ranges
+            from app.services.enhanced_feature_extraction import ERA_RANGE_MAP
+            year_ranges = None
+            if request.selected_eras:
+                year_ranges = [ERA_RANGE_MAP.get(era, [2000, 2009]) for era in request.selected_eras]
+            
+            results = await recommend_movies_embedding_first(
+                natural_query=request.query or "",
+                mood_labels=request.selected_moods or [],
+                genres=request.selected_genres or [],
+                year_ranges=year_ranges,
+                db_session=db,
+                count=10
+            )
+            
+            return {
+                "success": True,
+                "query": request.query,
+                "count": len(results),
+                "movies": results,
+                "strategy": "Phase36-EmbeddingFirst",
+                "version": "3.6",
+                "config": {
+                    "architecture": "Embedding-First",
+                    "primary_engine": "Embedding Similarity Search",
+                    "secondary_engine": "Feature Filtering",
+                    "quadrants": 3
+                }
+            }
+        
         # 如果請求使用舊版推薦（對照組）
         if request.use_legacy:
             results = await recommend_movies_simple(
@@ -69,7 +107,7 @@ async def get_simple_recommendations(
                 "decision_score": None
             }
         
-        # 使用新版智能混合推薦
+        # 使用新版智能混合推薦 (Phase 3.5)
         results = await recommend_movies_hybrid(
             user_input=request.query,
             db_session=db,

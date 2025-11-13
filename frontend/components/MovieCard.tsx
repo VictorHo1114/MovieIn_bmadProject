@@ -224,9 +224,9 @@ export function MovieCard({ movie, onWatchlistChange, onTop10Change }: MovieCard
                              line-clamp-2 drop-shadow-lg">
                   {movie.title}
                 </h3>
-                {movie.release_year && (
+                {(movie.release_year || movie.release_date) && (
                   <p className="text-sm text-gray-300 mb-3">
-                    {movie.release_year}
+                    {movie.release_year || new Date(movie.release_date || '').getFullYear()}
                   </p>
                 )}
                 

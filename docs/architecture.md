@@ -18,9 +18,10 @@
 **MovieIn** 是一個基於 AI 的電影推薦平台，結合自然語言處理和 TMDB（The Movie Database）API，為使用者提供個性化的電影推薦。
 
 ### 核心特色
--  **混合式意圖解析引擎**：LLM (GPT-4) + 規則系統雙重保障
--  **智能推薦系統**：多層 Fallback 機制確保推薦品質
--  **多語言支援**：支援中文自然語言查詢，整合 TMDB 國際資料
+-  **智能混合推薦系統**：Feature Matching + Embedding 雙引擎自動切換
+-  **增強特徵提取**：Mood Label 映射表 + 精確 Keyword 匹配 + 自然語言推斷
+-  **本地資料庫**：PostgreSQL 儲存完整電影資料（genres, keywords, mood_tags）
+-  **動態隨機性控制**：可調整推薦的多樣性與探索性
 -  **現代化 UI**：Next.js 16 + React 19 + Tailwind CSS 4
 
 ---
@@ -31,12 +32,13 @@
 
 #### 後端核心檔案
 - **主進入點**：`backend/app/main.py`
-- **意圖解析**：`backend/app/routers/intent_parse.py` - 核心 AI 引擎
-- **推薦引擎**：`backend/app/routers/recommend_router.py`
-- **TMDB 客戶端**：`backend/api/tmdb_client.py` - 外部 API 整合
-- **TMDB 映射器**：`backend/api/tmdb_mapper.py` - 參數轉換
+- **推薦引擎**：`backend/app/services/simple_recommend.py` - 🔥 智能混合推薦系統
+- **特徵提取**：`backend/app/services/enhanced_feature_extraction.py` - Mood/Keyword 映射
+- **映射表定義**：`backend/app/services/mapping_tables.py` - MOOD_LABEL_TO_DB_TAGS (SSOT)
+- **語義重排序**：`backend/app/services/embedding_service.py` - Embedding 匹配
 - **資料庫連線**：`backend/db/database.py`
 - **使用者模型**：`backend/app/models/user.py`
+- **棄用**：`backend/app/routers/intent_parse.py` (舊版 LLM 意圖解析)
 
 #### 前端核心檔案
 - **主進入點**：`frontend/app/page.tsx`  重定向至 `/home`
@@ -65,11 +67,11 @@ MovieIn 採用**現代化全端架構**，前後端分離，透過 RESTful API �
 |------|------|------|------|
 | **後端框架** | FastAPI | 0.119.1 | 非同步 Python Web 框架 |
 | **Python** | Python | 3.x | 建議 3.10+ |
-| **資料庫** | PostgreSQL (Neon) | 13+ | 雲端託管 |
+| **資料庫** | PostgreSQL (Neon) | 13+ | 雲端託管，儲存完整電影資料 |
 | **ORM** | SQLAlchemy | Latest | 使用 declarative_base |
 | **遷移工具** | Alembic | 1.14.0 | 資料庫版本控制 |
-| **AI/LLM** | OpenAI GPT-4 | gpt-4o-mini | 意圖解析引擎 |
-| **外部 API** | TMDB API | v3 | 電影資料來源 |
+| **AI/Embedding** | OpenAI Embedding | text-embedding-3-small | 語義匹配（可選路徑） |
+| **外部 API** | ~~TMDB API~~ | ~~v3~~ | ⚠️ 已棄用，使用本地 DB |
 | **前端框架** | Next.js | 16.0.0 | App Router 架構 |
 | **UI 函式庫** | React | 19.2.0 | 最新版本 |
 | **狀態管理** | Zustand | 5.0.8 | 輕量級狀態管理 |
@@ -120,75 +122,118 @@ MovieIn 採用**現代化全端架構**，前後端分離，透過 RESTful API �
 #### 核心推薦流程（最重要）
 
 ```
-1. 使用者輸入
+1. 使用者輸入（前端）
    
-   "想看溫暖又真實的日韓電影，不要太血腥"
-   + [comforting, based_on_true_story, asian_cinema]
-   + [must_not: gore, graphic_violence]
+   自然語言: "難過的時候適合看什麼"
+   + Mood Buttons: ["難過", "治癒"]
+   + Genre Buttons: ["劇情"]
+   + Era Buttons: ["90s", "00s"]
    
-2. POST /api/intent/parse
+2. POST /api/recommend/movies
    
-   [混合架構 - 三階段處理]
+   [智能混合推薦流程]
    
-   階段 1: LLM 完整解析
-    呼叫 GPT-4o-mini (temperature=0.0)
-    解析年份、類型、情緒、關鍵字
-    產生 llm_raw JSON
+   階段 1: Enhanced Feature Extraction
+    🔍 中文 Mood → 英文 Mood Tags (ZH_TO_EN_MOOD 映射表)
+      "難過" → "sad", "melancholy"
+      "治癒" → "healing", "heartwarming"
+    
+    🔍 Mood Label → DB Tags/Keywords (MOOD_LABEL_TO_DB_TAGS 映射表)
+      "sad" → mood_tags: ["sad", "melancholy", "emotional"]
+            → keywords: ["loss", "grief", "depression"]
+      "healing" → mood_tags: ["healing", "uplifting"]
+                → keywords: ["hope", "recovery", "redemption"]
+    
+    🔍 自然語言 Keyword 提取 (extract_exact_keywords_from_db)
+      "難過" → 查詢映射表 → "sadness", "sorrow"
+      直接從 DB 提取存在的 keywords
+    
+    🔍 年代轉換 (ERA_RANGE_MAP)
+      "90s" → [1990, 1999]
+      "00s" → [2000, 2009]
+    
+    📦 輸出:
+      {
+        "keywords": ["loss", "grief", "hope", "recovery", ...],
+        "mood_tags": ["sad", "melancholy", "healing", "uplifting", ...],
+        "genres": ["剧情"],  // 簡體中文（DB 格式）
+        "year_ranges": [[1990, 1999], [2000, 2009]]  // 多個範圍 OR 邏輯
+      }
    
-   階段 2: finalize_intent() 審計與補完
-   a) 套用 Feature 規則 (apply_feature_rules)
-      - "comforting"  genres: [Drama, Romance, Family, Comedy]
-      - "comforting"  must_not: [thriller, horror, gore]
-      - "based_on_true_story"  keywords: [9672, 9346]
+   階段 2: SQL Feature Matching (⚠️ **完全 OR 邏輯**)
+    
+    📊 評分公式:
+      feature_score = 
+        (keyword_matches × 20) +      // 任一 keyword 符合就加分
+        (mood_tag_matches × 15) +     // 任一 mood_tag 符合就加分
+        (genre_matches × 10) +        // 任一 genre 符合就加分
+        (vote_average - 5) × 3 +
+        (popularity / 1000) × 2 +
+        RANDOM() × (5-50)             // 隨機性權重
+    
+    🔍 硬性過濾（AND 邏輯）:
+      WHERE 
+        (release_year BETWEEN 1990 AND 1999 OR   // 年代 OR 邏輯
+         release_year BETWEEN 2000 AND 2009)
+        AND genres @> ["剧情"]                    // 類型必須包含
+    
+    ⚠️ **問題**: 
+      - 選 10 個 mood labels → 映射出 50+ tags/keywords → 任一符合就得分
+      - 選 1 個 mood label → 映射出 5 個 tags/keywords → 任一符合就得分
+      - **結果**: 選越多 labels，匹配範圍越廣，越不精準
+      - **缺少**: 沒有「先找全部符合，再找部分符合」的漸進邏輯
+    
+    📤 返回: 150 部候選電影（按 feature_score 排序）
    
-   b) 套用語言規則 (apply_language_rules)
-      - "asian_cinema"  languages: [ja, ko, zh]
+   階段 3: 智能決策 (should_use_embedding)
+    
+    🤖 評分系統（總分 100，閾值 40）:
+      - 有明確 keywords (3+): -30 分
+      - 有明確 mood_tags (2+): -20 分
+      - 有 Feature Buttons (3+): -25 分
+      - 無抽象詞: -20 分
+      - Feature 分數高: -15 分
+      - 候選數量足夠: -15 分
+    
+    🎯 決策:
+      - 分數 < 40 → Feature 路徑（規則式多樣性過濾）
+      - 分數 >= 40 → Embedding 路徑（語義匹配重排序）
+    
+    📊 當前案例:
+      keywords: 8 個 (-30), mood_tags: 4 個 (-30),
+      buttons: 3 個 (-25), 無抽象詞 (-20)
+      → 總分 = 100 - 30 - 30 - 25 - 20 = -5
+      → **使用 Feature 路徑**
    
-   c) Regex 安全網 (apply_natural_language_hints)
-      - "血腥"  exclude_keywords: [gore, violence]
-      - "日韓"  確認 languages 包含 ja, ko
+   階段 4: 路徑執行
+    
+    ⚡ Feature 路徑: diversity_filter()
+      - 規則式多樣性過濾
+      - 避免同類型/同年代電影重複
+      - 隨機性加權（randomness 參數控制）
+    
+    🔮 Embedding 路徑: rerank_by_semantic_similarity()
+      - 使用 OpenAI Embedding API
+      - 計算語義相似度
+      - MMR 多樣性重排序
    
-   d) 安全預設 (apply_safe_defaults)
-      - year_range: [2015, 2025]
-      - runtime_range: [80, 250]
-      - vote_count_min: 200
-      - sort_by: "vote_average.desc"
+   階段 5: 返回結果
+    
+    📤 格式化為 FrontendMovie[]
+      {
+        "id": 123,
+        "title": "完美的日子",
+        "overview": "...",
+        "poster_url": "https://image.tmdb.org/t/p/w500/...",
+        "release_year": 2023,
+        "vote_average": 7.8,
+        "feature_score": 45.2,
+        "similarity_score": 0.85  // 僅 Embedding 路徑
+      }
+
+3. 前端顯示結果
    
-   階段 3: 回傳 MovieIntent
-   
-3. POST /api/recommend/movies (with MovieIntent)
-   
-   [多層 Fallback 策略]
-   
-   策略 1: 理想查詢 (Keywords + Genres)
-    tmdb_mapper.to_tmdb_discover_params()
-    genres: Drama, Romance, Family, Comedy
-    keywords: "based on true story", "heartwarming"
-    languages: ja, ko, zh
-    若成功  回傳結果
-   
-   策略 2: 優先級 (僅 Keywords)
-    移除 genres，保留 keywords
-    若成功  回傳結果
-   
-   策略 3: 次要 (僅 Genres)
-    移除 keywords，保留 genres
-    若成功  回傳結果
-   
-   策略 4: 最終防呆 (僅 Genres + 熱門度)
-    sort_by: "popularity.desc"
-    若仍失敗  回傳空陣列 []
-   
-4. TMDB API 回應處理
-   
-   _format_tmdb_results()
-    格式化為 FrontendMovie[]
-    建構完整 poster URL
-    解析 release_year
-   
-5. 回傳給前端
-   
-   HomeClient.tsx 顯示結果
+   HomeClient.tsx 渲染電影卡片
 ```
 
 ---
@@ -311,41 +356,67 @@ MovieIn_bmadProject/
 
 #### 後端核心模組
 
-**1. `intent_parse.py` - 混合式意圖解析引擎**
-- **職責**：將自然語言 + 標籤  結構化 MovieIntent
-- **架構**：LLM (GPT-4) + 規則系統（三階段處理）
+**1. `simple_recommend.py` - 智能混合推薦引擎** ⭐
+- **職責**：核心推薦邏輯，智能選擇 Feature 或 Embedding 路徑
+- **架構**：
+  - `recommend_movies_hybrid()` - 主推薦函數
+  - `should_use_embedding()` - 智能決策引擎（100 分評分系統）
+  - `sql_feature_matching()` - SQL 多維特徵匹配
+  - `diversity_filter()` - 規則式多樣性過濾
+- **評分公式**：`keywords×20 + mood_tags×15 + genres×10 + rating×3 + popularity×2 + RANDOM()×(5-50)`
 - **特色**：
-  - 完整解析年份、類型、情緒、關鍵字
-  - Regex 安全網確保「動作片」不遺漏
-  - 自動補充安全預設值
-- **端點**：
-  - `POST /api/intent/parse` - 解析意圖
-  - `POST /api/intent/validate` - 驗證 Intent 結構
-- **技術債務**： OpenAI API Key 必須設定在環境變數
+  - 動態決策閾值（預設 40）
+  - 可調整隨機性（0.0-1.0）
+  - 詳細日誌輸出
+- **⚠️ 已知問題**：
+  - **完全 OR 邏輯**：所有 features 都是任一符合就加分
+  - **缺少 AND 邏輯**：沒有「必須全部符合」的選項
+  - **選越多越不準**：大量 mood labels → 映射出大量 tags → 匹配範圍過廣
 
-**2. `tmdb_client.py` - TMDB API 整合層**
-- **職責**：將 MovieIntent  TMDB API  FrontendMovie[]
-- **特色**：四層 Fallback 策略確保推薦品質
-  1. Keywords + Genres（理想）
-  2. 僅 Keywords（優先）
-  3. 僅 Genres（次要）
-  4. 僅 Genres + 熱門度（保底）
-- **注意事項**：
-  -  使用 `httpx.AsyncClient` 非同步請求
-  -  包含詳細 DEBUG 日誌
-  -  TMDB API Key 必須設定在環境變數
+**2. `enhanced_feature_extraction.py` - 增強特徵提取** ⭐
+- **職責**：將用戶輸入轉換為 DB 可查詢的特徵
+- **架構**：
+  - `enhanced_feature_extraction()` - 主提取函數
+  - `extract_exact_keywords_from_db()` - 從 DB 提取精確 keywords
+  - `extract_exact_titles_from_db()` - 片名精確匹配
+  - Mood Label 映射表（MOOD_LABEL_TO_DB_TAGS）
+  - 中英文映射（ZH_TO_EN_MOOD, ZH_TO_EN_KEYWORDS）
+- **特色**：
+  - 三層匹配：精確匹配 → 映射表 → 自然語言推斷
+  - 支援多年代篩選（OR 邏輯）
+  - 繁簡轉換（UI 繁體 → DB 簡體）
+- **輸出**：`{keywords, mood_tags, genres, year_ranges, exact_matches}`
 
-**3. `tmdb_mapper.py` - 參數映射器**
-- **職責**：MovieIntent  TMDB Discover API 參數
-- **映射表**：
-  - `GENRE_TO_TMDB`：類型名稱  TMDB ID（28=Action, 35=Comedy...）
-  - `KEYWORD_TO_TMDB`：關鍵字  TMDB ID（9672=based on true story...）
-- **注意**：使用 `set()` 確保 ID 唯一性
+**3. `mapping_tables.py` - 映射表定義（SSOT）**
+- **職責**：Mood Label → DB Tags/Keywords 的唯一真相來源
+- **核心映射表**：
+  - `MOOD_LABEL_TO_DB_TAGS` - 200+ mood labels 映射
+  - `ZH_TO_EN_MOOD` - 中文情緒 → 英文 mood tags
+  - `ZH_TO_EN_KEYWORDS` - 中文關鍵詞 → 英文 keywords
+- **範例**：
+  ```python
+  "sad": {
+    "db_mood_tags": ["sad", "melancholy", "emotional"],
+    "db_keywords": ["loss", "grief", "depression"]
+  }
+  ```
 
-**4. `database.py` - 資料庫連線**
+**4. `embedding_service.py` - 語義匹配服務**
+- **職責**：使用 OpenAI Embedding 進行語義重排序
+- **架構**：
+  - `rerank_by_semantic_similarity()` - 主重排序函數
+  - MMR (Maximal Marginal Relevance) 多樣性算法
+- **特色**：
+  - 僅在高抽象查詢時觸發（由 `should_use_embedding()` 決定）
+  - 支援多樣性權重調整
+  - Boost 精確匹配電影
+
+**5. `database.py` - 資料庫連線**
 - **職責**：建立 SQLAlchemy engine 和 session
-- **設定**：從 `.env` 讀取 `DATABASE_URL`
-- **技術債務**： 若 `DATABASE_URL` 未設定會直接拋出 RuntimeError
+- **Schema**：
+  - `movies` 表：包含 genres (JSONB), keywords (JSONB), mood_tags (JSONB)
+  - `users` 表：UUID, email, password_hash
+- **技術債務**：⚠️ 若 `DATABASE_URL` 未設定會直接拋出 RuntimeError
 
 #### 前端核心模組
 
@@ -531,7 +602,65 @@ class User(Base):
 
 ### 關鍵技術債務
 
-#### 1. 環境變數依賴 
+#### 1. ⚠️ **推薦系統缺少 AND 邏輯（最嚴重）**
+**問題**：Feature Matching 完全使用 OR 邏輯，無漸進式篩選
+
+**影響**：
+- 選擇 10 個 mood labels → 映射出 50+ tags/keywords → 任一符合就得分
+- 選擇 1 個 mood label → 映射出 5 個 tags/keywords → 任一符合就得分
+- **結果**：選越多 labels，匹配範圍越廣，反而越不精準
+
+**當前評分公式**（`sql_feature_matching()`）：
+```python
+feature_score = 
+    (keyword_matches × 20) +      # OR 邏輯：任一 keyword 符合就加分
+    (mood_tag_matches × 15) +     # OR 邏輯：任一 mood_tag 符合就加分
+    (genre_matches × 10) +        # OR 邏輯：任一 genre 符合就加分
+    (vote_average - 5) × 3 +
+    (popularity / 1000) × 2 +
+    RANDOM() × (5-50)
+```
+
+**建議解決方案**：
+```python
+# 方案 A: 分層查詢（Tiered Matching）
+# Tier 1: 嚴格模式 - 必須符合所有選擇的 features
+WHERE 
+    genres @> ALL(selected_genres) AND
+    mood_tags ?& ALL(selected_moods) AND
+    keywords ?& ALL(selected_keywords)
+LIMIT 10
+
+# Tier 2: 如果結果 < 10，降級到多數符合（70%）
+WHERE 
+    (matched_count >= total_required * 0.7)
+LIMIT 10
+
+# Tier 3: 如果還是不夠，降級到任一符合（現狀）
+WHERE 
+    genres ?| ANY(selected_genres) OR
+    mood_tags ?| ANY(selected_moods)
+
+# 方案 B: 加權必要性（Match Ratio）
+match_ratio = matched_features / total_required_features
+
+ORDER BY 
+    match_ratio DESC,          # 符合比例優先
+    feature_score DESC         # 同比例再看總分
+
+# 方案 C: 用戶選擇匹配模式
+// 前端新增選項
+matchMode: "strict" | "balanced" | "loose"
+// strict: 必須符合 80%+ features
+// balanced: 符合 50%+ features（建議預設）
+// loose: 符合任一 feature（目前）
+```
+
+**優先級**：🔥 **P0 - 影響核心推薦品質**
+
+---
+
+#### 2. 環境變數依賴 
 **問題**：多個關鍵功能依賴環境變數，未設定會導致應用無法啟動。
 
 **影響檔案**：
@@ -544,7 +673,20 @@ class User(Base):
 - 在 README 中明確說明必要環境變數
 - 考慮在啟動時檢查必要環境變數並提供友善錯誤訊息
 
-#### 2. Mock 資料端點 
+#### 2. 環境變數依賴
+**問題**：多個關鍵功能依賴環境變數，未設定會導致應用無法啟動。
+
+**影響檔案**：
+- `backend/db/database.py`：`DATABASE_URL` 未設定 → RuntimeError
+- `backend/app/services/embedding_service.py`：`OPENAI_API_KEY` 未設定 → Embedding 失敗（可降級）
+- ~~`backend/api/tmdb_client.py`~~：⚠️ 已棄用 TMDB API
+
+**解決方案**：
+- 建立 `.env.example` 檔案提供範本
+- 在 README 中明確說明必要環境變數
+- 考慮在啟動時檢查必要環境變數並提供友善錯誤訊息
+
+#### 3. Mock 資料端點 
 **問題**：`/home`, `/profile/me`, `/search` 端點回傳硬編碼的 Mock 資料。
 
 **影響**：
@@ -945,6 +1087,286 @@ npm run lint
 - 後端：Sentry, Datadog
 - 前端：Vercel Analytics, Google Analytics
 - 資料庫：Neon 內建監控
+
+---
+
+## ⚠️ 關鍵問題與改進建議
+
+### 🔥 診斷結果: Embedding 使用率低且不準的原因
+
+#### 根本原因分析
+
+**1. 語言匹配問題**：
+```
+✅ 已確認: DB 電影 overview 全部為中文
+✅ 用戶輸入: 中文（"難過的時候適合看什麼"）
+→ 理論上應該可以匹配，但...
+```
+
+**2. Embedding 基礎設施缺失**：
+```
+❌ movie_vectors 表不存在
+❌ 沒有預先計算的 embedding
+❌ 每次都要即時呼叫 OpenAI API（慢且貴）
+```
+
+**3. 觸發閾值過高**：
+```python
+# 用戶選擇 3 個 mood buttons + 1 個 genre
+→ 評分: 100 - 25(buttons) - 30(mood_tags) - 30(keywords) = 15
+→ 閾值: 40
+→ 結果: 15 < 40，不觸發 Embedding ❌
+```
+
+**4. Embedding 內容單一**：
+```python
+# 當前實作（embedding_service.py）
+movie_text = f"{title}. {overview or ''}"  # 只用 title + overview
+
+# 問題: 缺少關鍵特徵
+❌ 沒有 genres（類型）
+❌ 沒有 keywords（關鍵詞）
+❌ 沒有 mood_tags（情緒標籤）
+```
+
+#### 建議改進方案
+
+**【方案 A+】雙引擎並行 + 加權融合** ⭐⭐⭐ （推薦）
+
+```python
+async def hybrid_dual_engine_recommend(
+    user_input: str,
+    features: Dict,
+    db_session: Session,
+    top_k: int = 10
+):
+    # Step 1: Feature Matching（三層漸進式）
+    tier1_results = await strict_feature_matching(features, threshold=0.8)  # AND 邏輯
+    tier2_results = await balanced_feature_matching(features, threshold=0.5) if len(tier1_results) < 50 else []
+    tier3_results = await loose_feature_matching(features) if len(tier1_results + tier2_results) < 100 else []
+    
+    feature_candidates = tier1_results + tier2_results + tier3_results
+    
+    # Step 2: Embedding Reranking（並行執行，不替代）
+    if user_input and len(user_input.strip()) > 0:
+        # 使用增強版 embedding（包含 genres + keywords + mood_tags）
+        embedding_scores = await enhanced_embedding_rerank(
+            query=user_input,
+            candidates=feature_candidates,
+            db_session=db_session
+        )
+    else:
+        embedding_scores = {}
+    
+    # Step 3: 加權融合
+    for movie in feature_candidates:
+        feature_score = movie.get("feature_score", 0)
+        embedding_score = embedding_scores.get(movie["id"], 0) * 100  # 歸一化到 0-100
+        match_ratio = movie.get("match_ratio", 0)  # 符合比例（0-1）
+        
+        # 融合公式（可調整權重）
+        final_score = (
+            feature_score * 0.4 +          # Feature 匹配 40%
+            embedding_score * 0.3 +        # 語義匹配 30%
+            match_ratio * 100 * 0.3        # 符合比例 30%
+        )
+        movie["final_score"] = final_score
+    
+    # Step 4: 排序 + 多樣性過濾
+    feature_candidates.sort(key=lambda x: x["final_score"], reverse=True)
+    results = diversity_filter(feature_candidates, top_k=top_k)
+    
+    return results
+```
+
+**優點**：
+- ✅ 保留 Feature Matching 的精準度（三層漸進式）
+- ✅ 加入 Embedding 的語義理解（補足 Feature 盲點）
+- ✅ 兩者互補，不再二選一
+- ✅ 權重可調整（A/B 測試友善）
+
+**【方案 B】增強 Embedding 內容**
+
+```python
+# 修改 batch_populate_embeddings.py
+def generate_enhanced_embedding_text(movie: Dict) -> str:
+    """
+    生成包含所有特徵的 embedding 文本
+    """
+    parts = []
+    
+    # 1. 標題
+    parts.append(f"Title: {movie['title']}")
+    
+    # 2. 類型
+    if movie.get('genres'):
+        genres_str = ", ".join(movie['genres'])
+        parts.append(f"Genres: {genres_str}")
+    
+    # 3. 情緒標籤
+    if movie.get('mood_tags'):
+        moods_str = ", ".join(movie['mood_tags'])
+        parts.append(f"Mood: {moods_str}")
+    
+    # 4. 關鍵詞
+    if movie.get('keywords'):
+        keywords_str = ", ".join(movie['keywords'][:10])  # 限制數量
+        parts.append(f"Keywords: {keywords_str}")
+    
+    # 5. 簡介
+    if movie.get('overview'):
+        parts.append(f"Overview: {movie['overview']}")
+    
+    return " | ".join(parts)
+
+# 範例輸出:
+# "Title: 完美的日子 | Genres: 劇情 | Mood: peaceful, contemplative, healing | 
+#  Keywords: slice-of-life, minimalism, daily-routine | 
+#  Overview: 一位東京清潔工的平靜生活..."
+```
+
+**優點**：
+- ✅ Embedding 包含完整特徵（genres + moods + keywords）
+- ✅ 語義匹配更準確
+- ✅ 適合抽象查詢（"適合下雨天看的電影"）
+
+**【方案 C】建立 movie_vectors 表 + 預計算**
+
+```sql
+-- 創建 Embedding 向量表
+CREATE TABLE IF NOT EXISTS movie_vectors (
+    tmdb_id INTEGER PRIMARY KEY REFERENCES movies(tmdb_id),
+    embedding_text TEXT,              -- 用於生成 embedding 的完整文本
+    embedding JSONB,                  -- embedding 向量（1536 維）
+    embedding_version VARCHAR(20),    -- embedding 模型版本
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_movie_vectors_tmdb_id ON movie_vectors(tmdb_id);
+```
+
+```python
+# 批次預計算（執行一次）
+python tools/batch_populate_enhanced_embeddings.py
+
+# 預估成本:
+# 675 部電影 × $0.00002/1K tokens × 平均 300 tokens 
+# = 675 × 0.00002 × 0.3 = $0.00405 ≈ $0.004
+# （超便宜！）
+```
+
+**優點**：
+- ✅ 預先計算，查詢時超快
+- ✅ 成本極低（一次性）
+- ✅ 可離線更新
+
+---
+
+### 問題 1: Feature Matching 完全 OR 邏輯
+
+**現況**：
+- 所有 features（keywords, mood_tags, genres）都是 **OR 匹配**
+- 只要符合**任意一個** feature 就會獲得分數並被選中
+- 沒有「必須全部符合」或「漸進式比較」的機制
+
+**影響範例**：
+```
+用戶選擇: ["sad", "healing", "uplifting", "emotional", "heartwarming"]
+↓
+映射後: 25+ mood_tags + 30+ keywords
+↓
+SQL 查詢: WHERE mood_tags ?| ANY([25個tags]) OR keywords ?| ANY([30個keywords])
+↓
+結果: 只要電影包含「sad」或「healing」其中一個就會被選中
+→ 匹配範圍過廣，精準度降低
+```
+
+**建議改進方案**：
+
+#### 方案 A: 三層漸進式查詢（推薦）⭐
+```python
+async def tiered_feature_matching(features, db_session):
+    # Tier 1: 嚴格模式（AND 邏輯）- 優先嘗試
+    strict_results = await query_with_all_features(features, threshold=0.8)
+    if len(strict_results) >= 10:
+        return strict_results[:10]
+    
+    # Tier 2: 平衡模式（多數符合）- 降級
+    balanced_results = await query_with_most_features(features, threshold=0.5)
+    if len(balanced_results) >= 10:
+        return balanced_results[:10]
+    
+    # Tier 3: 寬鬆模式（OR 邏輯）- 保底
+    loose_results = await query_with_any_features(features)
+    return loose_results[:10]
+```
+
+**優點**：
+- 保持精準度（先嚴格，後寬鬆）
+- 保證有結果（三層 fallback）
+- 用戶體驗好（選越多越精準）
+
+#### 方案 B: Match Ratio 排序
+```python
+# 計算符合比例
+match_ratio = matched_features / total_required_features
+
+# 優先顯示高符合比例的電影
+ORDER BY 
+    match_ratio DESC,          # 100% 符合優先
+    feature_score DESC         # 同比例再看總分
+```
+
+**優點**：
+- 實作簡單（單一查詢）
+- 符合比例清楚（可顯示給用戶）
+- 保留現有評分邏輯
+
+#### 方案 C: 用戶自選匹配模式
+```typescript
+// 前端新增選項
+<select name="matchMode">
+  <option value="strict">嚴格（必須全部符合）</option>
+  <option value="balanced">平衡（符合 50%+）</option>
+  <option value="loose">寬鬆（符合任一）</option>
+</select>
+```
+
+**優點**：
+- 彈性最高
+- 滿足不同用戶需求
+- 教育用戶理解推薦邏輯
+
+---
+
+### 問題 2: Mood Label 數量影響推薦精準度
+
+**現況**：
+```
+選 1 個 mood → 映射 5 個 tags → OR 匹配 → 範圍適中
+選 5 個 moods → 映射 25 個 tags → OR 匹配 → 範圍過廣
+選 10 個 moods → 映射 50 個 tags → OR 匹配 → 範圍極廣，幾乎所有電影都符合
+```
+
+**建議改進**：
+1. **限制 Mood 選擇數量**（3-5 個）
+2. **實作方案 A 的三層查詢**
+3. **顯示匹配度指標**（符合 8/10 個條件）
+
+---
+
+### 問題 3: 缺少用戶反饋機制
+
+**現況**：
+- 沒有「喜歡/不喜歡」按鈕
+- 無法學習用戶偏好
+- 推薦結果無法改進
+
+**建議改進**：
+1. 新增評分/反饋 API
+2. 儲存用戶互動記錄
+3. 調整 feature_score 權重
+4. 實作協同過濾
 
 ---
 

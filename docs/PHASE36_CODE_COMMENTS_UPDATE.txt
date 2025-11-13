@@ -1,0 +1,10 @@
+﻿Phase 3.6 程式碼註解更新完成報告
+
+已更新的檔案：
+1. simple_recommend.py - 檔案頭註解、HYBRID_CONFIG 註解、recommend_movies_embedding_first 完整文檔
+2. mood_analyzer.py - 檔案頭註解，說明 51 個 mood 關係配對
+3. embedding_query_generator.py - 檔案頭註解，說明 3 種情境處理
+4. embedding_service.py - Phase 3.6 函數註解
+5. phase36_config.py - 已有完整註解（無需更新）
+
+所有程式檔案的註解都已更新以反映 Phase 3.6 最新功能。

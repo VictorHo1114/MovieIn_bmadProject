@@ -60,11 +60,7 @@ export function RecommendationView() {
   }, [movies]);
 
   const handleGenerate = useCallback(async () => {
-    if (selectedMoods.length === 0) {
-      alert("請至少選擇一個心情標籤");
-      return;
-    }
-
+    // Phase 3.6: 移除強制選擇 mood 的限制，允許純自然語言查詢
     setIsLoading(true);
     try {
       const result = await getSimpleRecommendations(

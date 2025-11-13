@@ -68,21 +68,23 @@ def store_movie_embedding(
         embedding = get_embedding(overview)
         embedding_json = json.dumps(embedding)
         
-        # 使用 UPSERT (PostgreSQL)
+        # 使用 UPSERT (PostgreSQL) - Phase 1 修復：使用正確的 schema
         query = text("""
-            INSERT INTO movie_vectors (tmdb_id, embedding, overview, updated_at)
-            VALUES (:tmdb_id, :embedding, :overview, now())
+            INSERT INTO movie_vectors (tmdb_id, embedding, embedding_text, embedding_version, updated_at)
+            VALUES (:tmdb_id, :embedding, :embedding_text, :embedding_version, now())
             ON CONFLICT (tmdb_id) 
             DO UPDATE SET 
                 embedding = EXCLUDED.embedding,
-                overview = EXCLUDED.overview,
+                embedding_text = EXCLUDED.embedding_text,
+                embedding_version = EXCLUDED.embedding_version,
                 updated_at = now()
         """)
         
         db_session.execute(query, {
             "tmdb_id": tmdb_id,
             "embedding": embedding_json,
-            "overview": overview
+            "embedding_text": overview,
+            "embedding_version": "text-embedding-3-small"
         })
         db_session.commit()
     except Exception as e:
@@ -113,8 +115,12 @@ async def get_stored_embeddings(
     embeddings = {}
     for row in result:
         tmdb_id = row[0]
-        embedding_json = row[1]
-        embeddings[tmdb_id] = json.loads(embedding_json)
+        embedding_data = row[1]
+        # 修復：JSONB 類型已經是 list，不需要 json.loads()
+        if isinstance(embedding_data, str):
+            embeddings[tmdb_id] = json.loads(embedding_data)
+        else:
+            embeddings[tmdb_id] = embedding_data  # 已經是 list
     
     return embeddings
 
@@ -142,7 +148,18 @@ def calculate_diversity_score(
     for movie in movies:
         # 計算與已選電影的「差異度」
         genre_ids = set(movie.get("genre_ids", []))
-        release_year = movie.get("release_date", "")[:4] if movie.get("release_date") else None
+        
+        # 修復：處理 release_date 可能是 datetime.date 或 string
+        release_date = movie.get("release_date")
+        if release_date:
+            if hasattr(release_date, 'year'):
+                release_year = str(release_date.year)
+            elif isinstance(release_date, str) and len(release_date) >= 4:
+                release_year = release_date[:4]
+            else:
+                release_year = None
+        else:
+            release_year = None
         
         penalties = []
         for selected in selected_movies:
@@ -151,7 +168,17 @@ def calculate_diversity_score(
             genre_overlap = len(genre_ids & selected_genres) / max(len(genre_ids | selected_genres), 1)
             
             # 年份接近懲罰
-            selected_year = selected.get("release_date", "")[:4] if selected.get("release_date") else None
+            selected_date = selected.get("release_date")
+            if selected_date:
+                if hasattr(selected_date, 'year'):
+                    selected_year = str(selected_date.year)
+                elif isinstance(selected_date, str) and len(selected_date) >= 4:
+                    selected_year = selected_date[:4]
+                else:
+                    selected_year = None
+            else:
+                selected_year = None
+                
             year_penalty = 0.0
             if release_year and selected_year:
                 try:
@@ -280,3 +307,159 @@ async def rerank_by_semantic_similarity(
         print(f"  {i+1}. {movie.get('title', 'Unknown')} - 相似度:{movie['similarity_score']:.3f}, 最終分數:{movie.get('final_score', 0):.3f}")
     
     return selected_movies
+
+
+# ============================================================================
+# ============================================================================
+# Phase 3.6: Embedding-First 全庫搜索 ⭐
+# ============================================================================
+# 
+# 功能：
+# - 從整個 movie_vectors 表（668 部電影）搜索與查詢最相似的電影
+# - 計算 Cosine Similarity
+# - 返回 Top K 候選（預設 300）
+# 
+# 與 rerank_by_semantic_similarity 的區別：
+# - rerank: 對已有候選重新排序（Phase 3.5 用）
+# - embedding_similarity_search: 全庫搜索（Phase 3.6 用）
+# ============================================================================
+
+async def embedding_similarity_search(
+    query_text: str,
+    db_session: Session,
+    top_k: int = 300,
+    min_similarity: float = 0.0
+) -> List[Dict[str, Any]]:
+    """
+    Phase 3.6 核心功能：全庫 Embedding 語義搜索
+    
+    與 rerank_by_semantic_similarity() 的區別：
+    - rerank: 對已有的候選列表重新排序（Phase 2/3.5 用）
+    - embedding_similarity_search: 從全庫搜索（Phase 3.6 Primary Engine）
+    
+    流程：
+    1. 計算 query_text 的 Embedding
+    2. 從 movie_vectors 表查詢所有電影 Embeddings
+    3. 計算 Cosine Similarity
+    4. 返回 Top K 高分電影
+    
+    Args:
+        query_text: 用戶查詢文本（已由 embedding_query_generator 處理）
+        db_session: 資料庫 session
+        top_k: 返回前 K 部電影（預設 300，供後續 Feature Filtering）
+        min_similarity: 最低相似度閾值（預設 0.0，不過濾）
+    
+    Returns:
+        List[Dict]: 包含 tmdb_id, embedding_score, movie 基本資料
+        [
+            {
+                "id": 550,
+                "embedding_score": 0.85,
+                "embedding_text": "電影 overview 原文",
+                ...（movie 基本資料）
+            }
+        ]
+    
+    Example:
+        >>> results = await embedding_similarity_search(
+        ...     query_text="A heartwarming story about emotional healing",
+        ...     db_session=session,
+        ...     top_k=300
+        ... )
+        >>> len(results)  # 300
+        >>> results[0]["embedding_score"]  # 0.85
+    """
+    print(f"\n🔍 [Phase 3.6 Embedding Search] 全庫語義搜索")
+    print(f"   - Query: '{query_text[:80]}...'")
+    print(f"   - Top K: {top_k}")
+    print(f"   - Min Similarity: {min_similarity}")
+    print(f"{'-'*70}")
+    
+    # Step 1: 計算 query_text 的 Embedding
+    print(f"[1/4] 計算查詢 Embedding...")
+    query_embedding = get_embedding(query_text)
+    
+    # Step 2: 從 DB 查詢所有電影的 Embeddings + 基本資料
+    print(f"[2/4] 從 DB 查詢所有電影 Embeddings...")
+    query = text("""
+        SELECT 
+            mv.tmdb_id,
+            mv.embedding,
+            mv.embedding_text,
+            m.title,
+            m.original_title,
+            m.overview,
+            m.release_date,
+            m.popularity,
+            m.vote_average,
+            m.vote_count,
+            m.genres,
+            m.keywords,
+            m.mood_tags,
+            m.poster_path
+        FROM movie_vectors mv
+        JOIN movies m ON mv.tmdb_id = m.tmdb_id
+        WHERE mv.embedding IS NOT NULL
+    """)
+    
+    result = db_session.execute(query)
+    rows = result.fetchall()
+    
+    print(f"   ✓ 找到 {len(rows)} 部有 Embedding 的電影")
+    
+    if not rows:
+        print(f"   ⚠️  沒有電影有 Embedding，返回空列表")
+        return []
+    
+    # Step 3: 計算 Cosine Similarity
+    print(f"[3/4] 計算 Cosine Similarity...")
+    candidates = []
+    
+    for row in rows:
+        tmdb_id = row[0]
+        embedding_data = row[1]
+        
+        # 解析 embedding（可能是 JSONB 或 JSON string）
+        if isinstance(embedding_data, str):
+            movie_embedding = json.loads(embedding_data)
+        else:
+            movie_embedding = embedding_data  # 已經是 list
+        
+        # 計算相似度
+        similarity = cosine_similarity(query_embedding, movie_embedding)
+        
+        # 過濾低分
+        if similarity < min_similarity:
+            continue
+        
+        # 構建電影資料
+        candidates.append({
+            "id": tmdb_id,
+            "embedding_score": float(similarity),
+            "embedding_text": row[2],
+            "title": row[3],
+            "original_title": row[4],
+            "overview": row[5],
+            "release_date": row[6],
+            "popularity": float(row[7]) if row[7] else 0.0,
+            "vote_average": float(row[8]) if row[8] else 0.0,
+            "vote_count": int(row[9]) if row[9] else 0,
+            "genres": row[10] if row[10] else [],  # 使用 genres 統一命名 ⭐
+            "keywords": row[11] if row[11] else [],
+            "mood_tags": row[12] if row[12] else [],
+            "poster_path": row[13]  # Phase 3.6 新增 ⭐
+        })
+    
+    # Step 4: 排序並返回 Top K
+    print(f"[4/4] 排序並返回 Top {top_k}...")
+    candidates.sort(key=lambda x: x["embedding_score"], reverse=True)
+    results = candidates[:top_k]
+    
+    print(f"   ✓ 返回 {len(results)} 部電影")
+    print(f"\n   📊 Top 10 Embedding Scores:")
+    for i, movie in enumerate(results[:10]):
+        print(f"      {i+1}. {movie['title'][:40]:40s} - {movie['embedding_score']:.4f}")
+    
+    print(f"{'-'*70}\n")
+    
+    return results
