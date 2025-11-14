@@ -7,11 +7,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from db.database import SessionLocal, get_db
-from app.services.simple_recommend import (
-    recommend_movies_hybrid, 
-    recommend_movies_simple,
-    recommend_movies_embedding_first  # 新增 Phase 3.6 ⭐
-)
+from app.services.simple_recommend import recommend_movies_embedding_first
 from app.services.mapping_tables import get_mood_label_list  # 修改導入 ⭐
 
 router = APIRouter(prefix="/api/recommend/v2", tags=["recommend-v2"])
@@ -20,11 +16,7 @@ class SimpleRecommendRequest(BaseModel):
     query: str
     selected_genres: Optional[List[str]] = None  # 類型標籤 (繁體中文)
     selected_moods: Optional[List[str]] = None   # 心情/情境標籤
-    selected_eras: Optional[List[str]] = None    # 年代標籤 (如 ["90s", "00s"]) ⭐
-    randomness: Optional[float] = 0.3            # 隨機性參數（0.0-1.0）
-    decision_threshold: Optional[int] = 40       # 決策閾值（預設 40）
-    use_legacy: Optional[bool] = False           # 是否使用舊版推薦（對照組）
-    use_phase36: Optional[bool] = False          # 是否使用 Phase 3.6 Embedding-First ⭐ 新增
+    selected_eras: Optional[List[str]] = None    # 年代標籤 (如 ["90s", "00s"])
 
 @router.post("/movies")
 async def get_simple_recommendations(
@@ -32,114 +24,58 @@ async def get_simple_recommendations(
     db: Session = Depends(get_db)
 ):
     """
-    智能混合推薦 API (Feature + Embedding 自動切換)
+    Phase 3.6 Embedding-First 推薦 API
     
-    流程：
-    1. Feature Extraction: 解析自然語言 + Mood Buttons
-    2. SQL Feature Matching: 快速候選檢索
-    3. 智能判斷: 6 維評分系統決定路徑
-    4. Feature/Embedding: 根據評分選擇最佳策略
-    5. 多樣性過濾: 確保推薦多樣性
+    架構流程：
+    1. Embedding Query Generation: 智能生成查詢文本
+    2. Embedding Similarity Search: 全庫語義搜索 (Top 300)
+    3. Tiered Feature Filtering: 三層漸進式過濾 (→150)
+    4. 3-Quadrant Classification: Q1完美/Q2發現/Q4候補
+    5. Dynamic Scoring: 動態權重計算
+    6. Mixed Sorting: 象限優先 + 分數排序
+    7. Smart Selection: Top N 保證 + 隨機池多樣性
     
     參數：
-    - query: 自然語言查詢（如 "007"、"溫暖治癒的超級英雄電影"）
-    - selected_moods: 心情/情境標籤（如 ["動作冒險", "視覺饗宴"]）
-    - selected_genres: 類型標籤（如 ["Action", "Science Fiction"]）
-    - randomness: 隨機性（0.0 = 完全確定，1.0 = 完全隨機，預設 0.3）
-    - decision_threshold: 決策閾值（預設 40，越高越傾向 Embedding）
-    - use_legacy: 是否使用舊版推薦（預設 False，供 A/B 測試）
-    - use_phase36: 是否使用 Phase 3.6 Embedding-First（預設 False，新架構）⭐
+    - query: 自然語言查詢（如 "難過的時候適合看什麼電影"）
+    - selected_moods: 心情/情境標籤（如 ["heartwarming", "uplifting"]）
+    - selected_genres: 類型標籤（如 ["劇情", "愛情"]）
+    - selected_eras: 年代標籤（如 ["90s", "00s"]）
     
     返回：
-    - movies: 推薦電影列表（包含 similarity_score 或 feature_score）
-    - strategy: 使用的推薦策略（"Feature" 或 "Embedding" 或 "Phase36"）
-    - decision_score: 決策評分（供調試用）
+    - movies: 推薦電影列表（包含 embedding_score, match_ratio, quadrant）
+    - strategy: "Phase36-EmbeddingFirst"
+    - version: "3.6"
     """
     try:
-        # ⭐ Phase 3.6: Embedding-First 架構
-        if request.use_phase36:
-            # 將 selected_eras 轉換為 year_ranges
-            from app.services.enhanced_feature_extraction import ERA_RANGE_MAP
-            year_ranges = None
-            if request.selected_eras:
-                year_ranges = [ERA_RANGE_MAP.get(era, [2000, 2009]) for era in request.selected_eras]
-            
-            results = await recommend_movies_embedding_first(
-                natural_query=request.query or "",
-                mood_labels=request.selected_moods or [],
-                genres=request.selected_genres or [],
-                year_ranges=year_ranges,
-                db_session=db,
-                count=10
-            )
-            
-            return {
-                "success": True,
-                "query": request.query,
-                "count": len(results),
-                "movies": results,
-                "strategy": "Phase36-EmbeddingFirst",
-                "version": "3.6",
-                "config": {
-                    "architecture": "Embedding-First",
-                    "primary_engine": "Embedding Similarity Search",
-                    "secondary_engine": "Feature Filtering",
-                    "quadrants": 3
-                }
-            }
+        # Phase 3.6: Embedding-First 架構（唯一推薦引擎）
+        from app.services.enhanced_feature_extraction import ERA_RANGE_MAP
         
-        # 如果請求使用舊版推薦（對照組）
-        if request.use_legacy:
-            results = await recommend_movies_simple(
-                user_input=request.query,
-                db_session=db,
-                count=10,
-                selected_genres=request.selected_genres,
-                selected_moods=request.selected_moods
-            )
-            
-            return {
-                "success": True,
-                "query": request.query,
-                "count": len(results),
-                "movies": results,
-                "strategy": "Legacy",
-                "decision_score": None
-            }
+        # 將 selected_eras 轉換為 year_ranges
+        year_ranges = None
+        if request.selected_eras:
+            year_ranges = [ERA_RANGE_MAP.get(era, [2000, 2009]) for era in request.selected_eras]
         
-        # 使用新版智能混合推薦 (Phase 3.5)
-        results = await recommend_movies_hybrid(
-            user_input=request.query,
+        results = await recommend_movies_embedding_first(
+            natural_query=request.query or "",
+            mood_labels=request.selected_moods or [],
+            genres=request.selected_genres or [],
+            year_ranges=year_ranges,
             db_session=db,
-            count=10,
-            selected_moods=request.selected_moods,
-            selected_genres=request.selected_genres,
-            selected_eras=request.selected_eras,  # 新增 ⭐
-            randomness=request.randomness or 0.3,
-            decision_threshold=request.decision_threshold or 40
+            count=10
         )
-        
-        # 從結果推斷使用的策略
-        if results and len(results) > 0:
-            first_movie = results[0]
-            if first_movie.get("similarity_score", 0) > 0:
-                strategy = "Embedding"
-            elif first_movie.get("feature_score", 0) > 0:
-                strategy = "Feature"
-            else:
-                strategy = "Unknown"
-        else:
-            strategy = "None"
         
         return {
             "success": True,
             "query": request.query,
             "count": len(results),
             "movies": results,
-            "strategy": strategy,
+            "strategy": "Phase36-EmbeddingFirst",
+            "version": "3.6",
             "config": {
-                "randomness": request.randomness or 0.3,
-                "decision_threshold": request.decision_threshold or 40
+                "architecture": "Embedding-First",
+                "primary_engine": "Embedding Similarity Search",
+                "secondary_engine": "Feature Filtering",
+                "quadrants": 3
             }
         }
         
