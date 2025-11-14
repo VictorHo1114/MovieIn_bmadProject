@@ -196,7 +196,7 @@ async def tiered_feature_filtering(
     if genres:
         before_count = len(filtered_candidates)
         # 支援繁體/簡體中文
-        from app.services.enhanced_feature_extraction import GENRE_TRADITIONAL_TO_SIMPLIFIED
+        from app.services.mapping_tables import GENRE_TRADITIONAL_TO_SIMPLIFIED
         
         # 將繁體轉簡體（如果需要）
         genres_simplified = []

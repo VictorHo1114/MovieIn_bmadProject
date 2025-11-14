@@ -48,7 +48,7 @@ async def get_simple_recommendations(
     """
     try:
         # Phase 3.6: Embedding-First 架構（唯一推薦引擎）
-        from app.services.enhanced_feature_extraction import ERA_RANGE_MAP
+        from app.services.mapping_tables import ERA_RANGE_MAP
         
         # 將 selected_eras 轉換為 year_ranges
         year_ranges = None
@@ -118,7 +118,7 @@ async def get_system_info():
     返回系統配置、評分權重、閾值等資訊
     """
     from app.services.simple_recommend import HYBRID_CONFIG
-    from app.services.enhanced_feature_extraction import (
+    from app.services.mapping_tables import (
         ERA_RANGE_MAP,
         GENRE_SIMPLIFIED_TO_TRADITIONAL
     )
