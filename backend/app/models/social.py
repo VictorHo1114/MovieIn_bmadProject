@@ -54,6 +54,7 @@ class Friendship(Base):
     created_at = Column(TIMESTAMP(timezone=True), server_default=text("now()"), nullable=False)
     accepted_at = Column(TIMESTAMP(timezone=True), nullable=True)
     message = Column(Text, nullable=True)
+    deleted_at = Column(TIMESTAMP(timezone=True), nullable=True)
     
     # 關聯
     user = relationship("User", foreign_keys=[user_id], back_populates="friendships_initiated")

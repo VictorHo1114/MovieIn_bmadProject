@@ -15,6 +15,11 @@ from app.routers.quiz import router as quiz_router
 
 # --- 2. 導入你的 DB engine (只為了 /db-test) ---
 from db.database import engine 
+from db.database import SessionLocal
+import asyncio
+from datetime import datetime, timedelta
+from sqlalchemy import delete, text
+from app.models import Friendship
 
 
 app = FastAPI(
@@ -56,6 +61,32 @@ from app.routers.popular import router as popular_router
 app.include_router(popular_router)
 from app.routers.friends import router as friends_router
 app.include_router(friends_router)
+
+
+@app.on_event("startup")
+async def start_background_purge_task():
+    """啟動背景 Task，定期清除已標記為 deleted 且超過 5 分鐘的 friendship 紀錄。
+    此實作會在背景每 60 秒檢查一次並永久刪除符合條件的 rows。"""
+
+    async def purge_loop():
+        # 使用同步 Session 但在非阻塞的方式中執行短暫 sleep
+        while True:
+            try:
+                # 使用 SQL 直接刪除以減少 ORM overhead
+                with SessionLocal() as db:
+                    # delete friendships where status='deleted' and deleted_at < now() - interval '5 minutes'
+                    db.execute(text("""
+                        DELETE FROM friendships
+                        WHERE status = 'deleted' AND deleted_at IS NOT NULL AND deleted_at < (now() - interval '5 minutes')
+                    """))
+                    db.commit()
+            except Exception as e:
+                # log to stdout; avoid crashing the loop
+                print("Error in purge_loop:", e)
+            await asyncio.sleep(60)
+
+    # schedule the purge loop (don't await it)
+    asyncio.create_task(purge_loop())
 
 
 # --- 6. 你的測試路由 (保持不變) ---

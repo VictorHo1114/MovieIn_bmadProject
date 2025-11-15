@@ -200,6 +200,8 @@ export const Api = {
     updateMe: (data: ProfileUpdate): Promise<UserPublic> => {
       return patchJSON<UserPublic>("/profile/me", data);
     }
+    ,
+    getById: (userId: string) => getJSON<UserPublic>(`/profile/${userId}`),
   },
 
   // --- (?��?�? 修改 Auth ---

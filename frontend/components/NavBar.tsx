@@ -44,20 +44,33 @@ export default function NavBar() {
   useEffect(() => {
     fetchUser();
 
-    // load pending friend requests count for badge
+    // load pending friend requests count for badge (defensive)
     const loadPending = async () => {
       try {
-        const res = await getJSON<any[]>('/friends/requests');
-        setPendingCount(Array.isArray(res) ? res.length : 0);
+        // Prefer an endpoint that returns only a count for efficiency
+        const res = await getJSON<{ count: number }>('/friends/requests/count');
+        const n = res && typeof res.count === 'number' ? res.count : 0;
+        setPendingCount(n);
       } catch (e) {
-        // ignore
+        console.error('Failed to load pending friend requests count:', e);
+        // On error, ensure badge is hidden by setting 0
+        setPendingCount(0);
       }
     };
     loadPending();
 
     const handleProfileUpdate = () => fetchUser();
     window.addEventListener('profileUpdated', handleProfileUpdate);
-    return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
+
+    const handleFriendUpdate = () => {
+      loadPending();
+    };
+    window.addEventListener('friendRequestsUpdated', handleFriendUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+      window.removeEventListener('friendRequestsUpdated', handleFriendUpdate as EventListener);
+    };
   }, [router]);
 
   const handleMouseEnter = () => {

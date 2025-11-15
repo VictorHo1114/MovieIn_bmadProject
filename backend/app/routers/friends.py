@@ -156,6 +156,105 @@ def outgoing_requests(db: Session = Depends(get_db), current_user: User = Depend
     return items
 
 
+@router.get("/requests/count")
+def incoming_requests_count(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """回傳目前使用者收到的待處理好友邀請數量（只回傳數字）"""
+    count = (
+        db.query(Friendship)
+        .filter(Friendship.friend_id == current_user.user_id, Friendship.status == "pending")
+        .count()
+    )
+    return {"count": count}
+
+
+
+@router.delete("/{friend_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_friend(friend_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """移除好友關係（unfriend）。會搜尋目前使用者與 friend_id 之間的 accepted friendship，並刪除該紀錄。
+    如果找不到已接受的 friendship，回傳 404。"""
+    f = (
+        db.query(Friendship)
+        .filter(
+            (
+                (Friendship.user_id == current_user.user_id) & (Friendship.friend_id == friend_id)
+            )
+            | (
+                (Friendship.user_id == friend_id) & (Friendship.friend_id == current_user.user_id)
+            )
+        )
+        .filter(Friendship.status == "accepted")
+        .first()
+    )
+
+    if not f:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Accepted friendship not found")
+
+    # Only participants can delete; double check
+    if current_user.user_id not in (f.user_id, f.friend_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to delete this friendship")
+
+    # Soft-delete: 標記為 deleted 並紀錄時間，以便允許 undo
+    f.status = "deleted"
+    f.deleted_at = datetime.utcnow()
+    db.commit()
+    db.refresh(f)
+    return None
+
+
+@router.post("/{friend_id}/restore", response_model=FriendshipItem)
+def restore_friend(friend_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """恢復已被移除（status == 'deleted'）的 friendship（undo）。只允許關係參與者執行，且需為 deleted 狀態。"""
+    f = (
+        db.query(Friendship)
+        .filter(
+            (
+                (Friendship.user_id == current_user.user_id) & (Friendship.friend_id == friend_id)
+            )
+            | (
+                (Friendship.user_id == friend_id) & (Friendship.friend_id == current_user.user_id)
+            )
+        )
+        .filter(Friendship.status == "deleted")
+        .first()
+    )
+
+    if not f:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deleted friendship not found")
+
+    if current_user.user_id not in (f.user_id, f.friend_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to restore this friendship")
+
+    f.status = "accepted"
+    f.deleted_at = None
+    db.commit()
+    db.refresh(f)
+    return FriendshipItem(
+        id=f.id,
+        user_id=f.user_id,
+        friend_id=f.friend_id,
+        status=f.status,
+        created_at=f.created_at,
+        accepted_at=f.accepted_at,
+        message=f.message,
+    )
+
+
+@router.delete("/requests/{friendship_id}", status_code=status.HTTP_204_NO_CONTENT)
+def cancel_sent_request(friendship_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """取消已發出的好友邀請（pending）。只允許邀請發送者刪除。實作為直接刪除 pending row。"""
+    f = db.query(Friendship).filter(Friendship.id == friendship_id).first()
+    if not f:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Friendship not found")
+    if f.user_id != current_user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to cancel this request")
+    if f.status != "pending":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Friendship is not pending")
+
+    db.delete(f)
+    db.commit()
+    return None
+
+
 @router.post("/requests/{friendship_id}/accept", response_model=FriendshipItem)
 def accept_request(friendship_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     f = db.query(Friendship).filter(Friendship.id == friendship_id).first()
