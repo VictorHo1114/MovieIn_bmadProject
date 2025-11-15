@@ -12,9 +12,11 @@ import {
   FaSignOutAlt,
   FaBars,
   FaTimes,
+  FaUsers,
 } from 'react-icons/fa';
 
 import { Api } from '../lib/api';
+import { getJSON } from '@/lib/http';
 import { UserPublic } from '../lib/types/user';
 import { LogoutModal } from './LogoutModal';
 
@@ -25,6 +27,7 @@ export default function NavBar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [user, setUser] = useState<UserPublic | null>(null);
+  const [pendingCount, setPendingCount] = useState<number>(0);
   const timeoutRef = useRef<number | null>(null);
 
   const fetchUser = async () => {
@@ -40,6 +43,17 @@ export default function NavBar() {
 
   useEffect(() => {
     fetchUser();
+
+    // load pending friend requests count for badge
+    const loadPending = async () => {
+      try {
+        const res = await getJSON<any[]>('/friends/requests');
+        setPendingCount(Array.isArray(res) ? res.length : 0);
+      } catch (e) {
+        // ignore
+      }
+    };
+    loadPending();
 
     const handleProfileUpdate = () => fetchUser();
     window.addEventListener('profileUpdated', handleProfileUpdate);
@@ -114,6 +128,9 @@ export default function NavBar() {
               <Link href="/popular" className={linkCls('/popular')}>
                 熱門
               </Link>
+              <Link href="/social" className={linkCls('/social')}>
+                交友
+              </Link>
               <Link href="/search" className={linkCls('/search')}>
                 搜尋
               </Link>
@@ -181,6 +198,21 @@ export default function NavBar() {
                     <FaUserCircle className="mr-2 h-5 w-5 text-gray-400" />
                     個人資料
                   </Link>
+                      <Link
+                        href="/social/friends"
+                        onClick={() => setIsProfileOpen(false)}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <FaUsers className="mr-2 h-5 w-5 text-gray-400" />
+                        <span className="flex items-center gap-2">
+                          好友
+                          {pendingCount > 0 && (
+                            <span className="ml-1 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-red-600 text-white">
+                              {pendingCount}
+                            </span>
+                          )}
+                        </span>
+                      </Link>
                   <Link
                     href="/profile?tab=watchlist"
                     onClick={() => setIsProfileOpen(false)}
@@ -279,6 +311,35 @@ export default function NavBar() {
                 }`}
               >
                 熱門
+              </Link>
+              <Link 
+                href="/social" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`px-4 py-3 text-base transition-colors ${
+                  pathname === '/social' 
+                    ? 'bg-purple-600/20 text-white font-bold border-l-4 border-purple-400' 
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                交友
+              </Link>
+              <Link 
+                href="/social/friends" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`px-4 py-3 text-base transition-colors ${
+                  pathname === '/social/friends' 
+                    ? 'bg-purple-600/20 text-white font-bold border-l-4 border-purple-400' 
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span>好友</span>
+                  {pendingCount > 0 && (
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-red-600 text-white">
+                      {pendingCount}
+                    </span>
+                  )}
+                </div>
               </Link>
               <Link 
                 href="/search" 

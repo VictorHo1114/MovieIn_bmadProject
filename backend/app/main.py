@@ -54,6 +54,8 @@ from app.routers.movie import router as movie_router
 app.include_router(movie_router, prefix="/movie", tags=["movie"])
 from app.routers.popular import router as popular_router
 app.include_router(popular_router)
+from app.routers.friends import router as friends_router
+app.include_router(friends_router)
 
 
 # --- 6. 你的測試路由 (保持不變) ---
