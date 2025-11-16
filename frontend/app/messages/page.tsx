@@ -69,6 +69,7 @@ function MessagesContent() {
   const convPollRef = useRef<number | null>(null);
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
   const knownIdsRef = useRef<Set<string>>(new Set());
+  const pausePollRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -135,6 +136,7 @@ function MessagesContent() {
     }
     pollingRef.current = window.setInterval(async () => {
       try {
+        if (pausePollRef.current) return;
         const js = await Api.messages.getConversation(userId as string).catch(() => null);
         if (!js) return;
         const jsAny: any = js;
@@ -146,9 +148,9 @@ function MessagesContent() {
           // debug: log prev ids and incoming toAdd ids to diagnose duplicate/new-count issues
           try {
             // eslint-disable-next-line no-console
-            console.log('[messages.poll] prevIds=', Array.from(existing).slice(-10));
+            console.debug('[messages.poll] prevIds=', Array.from(existing).slice(-10));
             // eslint-disable-next-line no-console
-            console.log('[messages.poll] toAddIds=', toAdd.map((t) => String(t.id)).slice(-10));
+            console.debug('[messages.poll] toAddIds=', toAdd.map((t) => String(t.id)).slice(-10));
           } catch (e) {}
           if (toAdd.length === 0) return prev;
 
@@ -209,7 +211,7 @@ function MessagesContent() {
                               }
                               if (uniqueAdded > 0) {
                                 // eslint-disable-next-line no-console
-                                console.log('[messages.poll] uniqueAdded=', uniqueAdded, 'prevCount=', newMessagesCount);
+                                console.debug('[messages.poll] uniqueAdded=', uniqueAdded, 'prevCount=', newMessagesCount);
                                 setNewMessagesCount((n) => n + uniqueAdded);
                               }
                             }
@@ -404,22 +406,22 @@ function MessagesContent() {
       const inserted = js.item || js;
       // optimistic replacement with server-returned item if available
       if (inserted && inserted.id) {
-        try { console.log('[messages.send] server returned inserted id=', String(inserted.id)); } catch (e) {}
+        try { console.debug('[messages.send] server returned inserted id=', String(inserted.id)); } catch (e) {}
         setMessages((prev) => {
           const merged = [...prev, inserted];
           return merged.length > RECENT_LIMIT ? merged.slice(merged.length - RECENT_LIMIT) : merged;
         });
         // user just sent a message -> ensure we scroll to bottom and consider user at bottom
-        try { isAtBottomRef.current = true; scrollToBottomNow(); } catch (e) {}
+        try { isAtBottomRef.current = true; scrollToBottomNow(); pausePollRef.current = true; window.setTimeout(() => { pausePollRef.current = false; }, 1500); } catch (e) {}
       } else {
         const now = new Date().toISOString();
-        try { console.log('[messages.send] server did not return inserted id, creating local placeholder'); } catch (e) {}
+        try { console.debug('[messages.send] server did not return inserted id, creating local placeholder'); } catch (e) {}
         setMessages((prev) => {
           const merged = [...prev, { id: `local-${now}`, sender_id: currentUserId ?? 'me', recipient_id: userId, body: text, created_at: now }];
           return merged.length > RECENT_LIMIT ? merged.slice(merged.length - RECENT_LIMIT) : merged;
         });
         // user just sent a message -> ensure we scroll to bottom and consider user at bottom
-        try { isAtBottomRef.current = true; scrollToBottomNow(); } catch (e) {}
+        try { isAtBottomRef.current = true; scrollToBottomNow(); pausePollRef.current = true; window.setTimeout(() => { pausePollRef.current = false; }, 1500); } catch (e) {}
       }
       // notify other parts to refresh their conversation lists / unread counts
       try {
