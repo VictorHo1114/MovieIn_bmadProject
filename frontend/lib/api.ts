@@ -212,7 +212,7 @@ export const Api = {
     getConversations: () => getJSON<any[]>(`/messages/conversations`),
     // unread count helper
     unreadCount: () => getJSON<{ count: number }>(`/messages/unread_count`),
-    markRead: (userId: string) => postJSON(`/messages/mark_read`, { user_id: userId }),
+    markRead: (userId: string, uptoId?: number | string) => postJSON(`/messages/mark_read`, { user_id: userId, ...(uptoId ? { upto_id: uptoId } : {}) }),
   },
 
   // --- (?��?�? 修改 Auth ---

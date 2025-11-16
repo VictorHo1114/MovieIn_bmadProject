@@ -179,14 +179,27 @@ def mark_conversation_read(payload: dict, db: Session = Depends(get_db), current
     Expects JSON: { user_id }
     """
     other = payload.get("user_id")
+    upto_id = payload.get("upto_id")
     if not other:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="user_id required")
     try:
         cols = _existing_columns(db)
         has_receiver = "receiver_id" in cols
         recipient_cond = "(recipient_id = :me OR receiver_id = :me)" if has_receiver else "recipient_id = :me"
-        upd = text(f"UPDATE messages SET is_read = true, read_at = now() WHERE sender_id = :other AND {recipient_cond} AND is_read = false RETURNING id")
-        res = db.execute(upd, {"other": other, "me": str(current_user.user_id)})
+        # optionally restrict to messages up to a specific message id to avoid races
+        upto_clause = ""
+        params = {"other": other, "me": str(current_user.user_id)}
+        if upto_id is not None:
+            try:
+                # ensure integer-like
+                params["upto_id"] = int(upto_id)
+                upto_clause = " AND id <= :upto_id"
+            except Exception:
+                # ignore malformed upto_id and treat as not provided
+                upto_clause = ""
+
+        upd = text(f"UPDATE messages SET is_read = true, read_at = now() WHERE sender_id = :other AND {recipient_cond} AND is_read = false{upto_clause} RETURNING id")
+        res = db.execute(upd, params)
         rows = res.fetchall()
         db.commit()
 

@@ -52,6 +52,7 @@ function MessagesContent() {
   const userId = search?.get("user") || null;
 
   const [messages, setMessages] = useState<any[]>([]);
+  const RECENT_LIMIT = 100;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -78,11 +79,14 @@ function MessagesContent() {
         // Api.messages.getConversation returns array or { items }
         const jsAny: any = js;
         const items: any[] = Array.isArray(jsAny) ? jsAny : (jsAny.items || jsAny || []);
-        setMessages(items);
+        // keep only the most recent messages to avoid loading huge histories in the UI
+        setMessages(items.slice(-RECENT_LIMIT));
         // mark messages in this conversation as read (best-effort)
         (async () => {
           try {
-            const res = await Api.messages.markRead(userId as string);
+            // determine last message id to reduce race (only mark up to what we've loaded)
+            const lastId = items.length ? items[items.length - 1].id : undefined;
+            const res = await Api.messages.markRead(userId as string, lastId);
             // fetch current unread_count to sync badge exactly
             let uc: any = null;
             try {
@@ -132,7 +136,22 @@ function MessagesContent() {
           const existing = new Set(prev.map((m) => String(m.id)));
           const toAdd = items.filter((it) => !existing.has(String(it.id)));
           if (toAdd.length === 0) return prev;
-          return [...prev, ...toAdd];
+          let merged = [...prev, ...toAdd];
+          // trim to RECENT_LIMIT
+          if (merged.length > RECENT_LIMIT) merged = merged.slice(merged.length - RECENT_LIMIT);
+          // if window visible, mark up to latest id as read (best-effort)
+          if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+            try {
+              const lastId = items.length ? items[items.length - 1].id : undefined;
+              if (lastId) {
+                Api.messages.markRead(userId as string, lastId).then((res) => {
+                  // notify other parts
+                  window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail: res }));
+                }).catch(() => {});
+              }
+            } catch (e) {}
+          }
+          return merged;
         });
       } catch (e) {
         // ignore polling errors
@@ -165,6 +184,59 @@ function MessagesContent() {
     }, 80);
     return () => window.clearTimeout(t);
   }, [messages.length]);
+
+  // helper to scroll to bottom immediately (used on initial load / when opening a conversation)
+  const scrollToBottomNow = () => {
+    try {
+      if (lastMessageRef.current) {
+        lastMessageRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+        return;
+      }
+      if (containerRef.current) {
+        containerRef.current.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'auto' });
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // Ensure when entering a conversation we scroll to bottom once after load (even if no new messages)
+  useEffect(() => {
+    if (!userId) return;
+    // wait until loading finishes, then scroll to bottom
+    if (loading) return;
+    const t = window.setTimeout(() => scrollToBottomNow(), 60);
+    return () => window.clearTimeout(t);
+  }, [userId, loading]);
+
+  // visibility / focus handlers: when user returns to the page, mark conversation as read up to last message
+  useEffect(() => {
+    if (!userId) return;
+    const markCurrentAsRead = async () => {
+      try {
+        if (!messages || messages.length === 0) return;
+        const lastId = messages[messages.length - 1].id;
+        if (!lastId) return;
+        const res = await Api.messages.markRead(userId as string, lastId).catch(() => null);
+        if (res) window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail: res }));
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') markCurrentAsRead();
+    };
+    const onFocus = () => markCurrentAsRead();
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [userId, messages]);
 
   // load current user id (if authenticated) for message alignment and sender identity
   useEffect(() => {
@@ -241,10 +313,16 @@ function MessagesContent() {
       const inserted = js.item || js;
       // optimistic replacement with server-returned item if available
       if (inserted && inserted.id) {
-        setMessages((prev) => [...prev, inserted]);
+        setMessages((prev) => {
+          const merged = [...prev, inserted];
+          return merged.length > RECENT_LIMIT ? merged.slice(merged.length - RECENT_LIMIT) : merged;
+        });
       } else {
         const now = new Date().toISOString();
-        setMessages((prev) => [...prev, { id: `local-${now}`, sender_id: currentUserId ?? 'me', recipient_id: userId, body: text, created_at: now }]);
+        setMessages((prev) => {
+          const merged = [...prev, { id: `local-${now}`, sender_id: currentUserId ?? 'me', recipient_id: userId, body: text, created_at: now }];
+          return merged.length > RECENT_LIMIT ? merged.slice(merged.length - RECENT_LIMIT) : merged;
+        });
       }
       // notify other parts to refresh their conversation lists / unread counts
       try {
