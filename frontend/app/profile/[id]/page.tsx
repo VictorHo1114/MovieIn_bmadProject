@@ -99,6 +99,7 @@ export default async function OtherProfilePage({ params }: { params: { id: strin
                 >
                   查看好友 / 交互
                 </Link>
+                <Link href={`/messages?user=${user.user_id}`} className="inline-flex items-center px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500">私訊</Link>
                 <ProfileEditorClient userId={user.user_id as unknown as string} />
               </div>
             </div>

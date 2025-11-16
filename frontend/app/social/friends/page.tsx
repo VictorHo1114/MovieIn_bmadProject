@@ -324,6 +324,7 @@ export default function FriendsPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Link href={`/profile/${f.user_id}`} className="px-3 py-1 border border-gray-600 text-gray-200 rounded hover:bg-gray-700">檢視</Link>
+                          <Link href={`/messages?user=${f.user_id}`} className="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-500">私訊</Link>
                           <button
                             onClick={() => unfriend(f.user_id)}
                             className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-500"

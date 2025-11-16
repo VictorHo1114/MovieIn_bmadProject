@@ -61,6 +61,8 @@ from app.routers.popular import router as popular_router
 app.include_router(popular_router)
 from app.routers.friends import router as friends_router
 app.include_router(friends_router)
+from app.routers.messages import router as messages_router
+app.include_router(messages_router)
 
 
 @app.on_event("startup")
