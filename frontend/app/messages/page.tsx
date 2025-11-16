@@ -310,6 +310,13 @@ function MessagesContent() {
         if (!messages || messages.length === 0) return;
         const lastId = messages[messages.length - 1].id;
         if (!lastId) return;
+        // Only mark as read when the user is at (or near) the bottom of the chat.
+        // If the user is scrolled up we should NOT auto-mark as read on visibility/focus.
+        if (!isAtBottomRef.current) {
+          // notify other parts that the conversation was seen (page visible) but not marked read
+          window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail: { visible: true, marked: false } }));
+          return;
+        }
         const res = await Api.messages.markRead(userId as string, lastId).catch(() => null);
         if (res) window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail: res }));
       } catch (e) {
