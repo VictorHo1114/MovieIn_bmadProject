@@ -204,6 +204,17 @@ export const Api = {
     getById: (userId: string) => getJSON<UserPublic>(`/profile/${userId}`),
   },
 
+  // --- Messages (minimal helpers) ---
+  messages: {
+    // fetch conversation with a single user (existing backend endpoint)
+    getConversation: (otherUserId: string) => getJSON<any[]>(`/messages/conversation?user=${encodeURIComponent(otherUserId)}`),
+    // attempt to list recent conversations (backend may not implement)
+    getConversations: () => getJSON<any[]>(`/messages/conversations`),
+    // unread count helper
+    unreadCount: () => getJSON<{ count: number }>(`/messages/unread_count`),
+    markRead: (userId: string) => postJSON(`/messages/mark_read`, { user_id: userId }),
+  },
+
   // --- (?��?�? 修改 Auth ---
   auth: {
     signup: (data: UserCreate): Promise<UserPublic> => {

@@ -13,6 +13,7 @@ import {
   FaBars,
   FaTimes,
   FaUsers,
+  FaEnvelope,
 } from 'react-icons/fa';
 
 import { Api } from '../lib/api';
@@ -28,7 +29,9 @@ export default function NavBar() {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [user, setUser] = useState<UserPublic | null>(null);
   const [pendingCount, setPendingCount] = useState<number>(0);
+  const [messagesCount, setMessagesCount] = useState<number>(0);
   const timeoutRef = useRef<number | null>(null);
+  const pollRef = useRef<number | null>(null);
 
   const fetchUser = async () => {
     try {
@@ -59,17 +62,68 @@ export default function NavBar() {
     };
     loadPending();
 
+    const loadMessagesCount = async () => {
+      try {
+        const js = await Api.messages.unreadCount();
+        setMessagesCount(js?.count ?? 0);
+      } catch (e) {
+        setMessagesCount(0);
+      }
+    };
+    loadMessagesCount();
+
     const handleProfileUpdate = () => fetchUser();
     window.addEventListener('profileUpdated', handleProfileUpdate);
 
     const handleFriendUpdate = () => {
       loadPending();
+      loadMessagesCount();
     };
     window.addEventListener('friendRequestsUpdated', handleFriendUpdate as EventListener);
+
+    const handleConversationsUpdated = (ev: Event) => {
+      // If the event includes a detail with `marked` count, optimistically subtract it.
+      try {
+        const ce = ev as CustomEvent<any>;
+        const detail = ce?.detail;
+        if (detail && typeof detail.marked === 'number') {
+          setMessagesCount((prev) => Math.max(0, prev - detail.marked));
+        } else {
+          // otherwise reload from server
+          loadMessagesCount();
+        }
+      } catch (e) {
+        loadMessagesCount();
+      }
+    };
+    window.addEventListener('conversationsUpdated', handleConversationsUpdated as EventListener);
+
+    // Poll unread count periodically so badge updates when other users send messages.
+    if (pollRef.current) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+    pollRef.current = window.setInterval(() => {
+      loadMessagesCount();
+    }, 5000);
+
+    const handleWindowFocus = () => loadMessagesCount();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') loadMessagesCount();
+    };
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       window.removeEventListener('profileUpdated', handleProfileUpdate);
       window.removeEventListener('friendRequestsUpdated', handleFriendUpdate as EventListener);
+      window.removeEventListener('conversationsUpdated', handleConversationsUpdated as EventListener);
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (pollRef.current) {
+        window.clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
     };
   }, [router]);
 
@@ -173,6 +227,13 @@ export default function NavBar() {
             {/* Mobile Search Icon */}
             <Link href="/search" className="sm:hidden text-white text-xl hover:text-purple-400 transition-colors">
               <FaSearch />
+            </Link>
+
+            <Link href="/messages" className="relative text-white text-xl hover:text-purple-400 transition-colors">
+              <FaEnvelope />
+              {messagesCount > 0 && (
+                <span className="absolute -top-1 -right-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-red-600 text-white">{messagesCount}</span>
+              )}
             </Link>
 
             <li

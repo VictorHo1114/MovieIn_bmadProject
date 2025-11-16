@@ -56,29 +56,53 @@ function MessagesContent() {
   const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [otherName, setOtherName] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<any[] | null>(null);
+  const [sending, setSending] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const pollingRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!userId) return;
     setLoading(true);
     setError(null);
+    setOtherName(null);
     // Try loading conversation from backend. Endpoint may not exist yet; that's ok.
     (async () => {
       try {
-        const res = await fetch(`${API_BASE.replace(/\/$/, '')}/messages/conversation?user=${encodeURIComponent(userId)}`);
-        if (!res.ok) {
-          // show friendly message; don't throw so UI remains usable
-          setError(`伺服器回應 ${res.status} ${res.statusText}`);
-          setMessages([]);
-        } else {
-          const js = await res.json();
-          setMessages(js.items || js || []);
-        }
+        const js = await Api.messages.getConversation(userId as string).catch((e) => { throw e; });
+        // Api.messages.getConversation returns array or { items }
+        const jsAny: any = js;
+        const items: any[] = Array.isArray(jsAny) ? jsAny : (jsAny.items || jsAny || []);
+        setMessages(items);
+        // mark messages in this conversation as read (best-effort)
+        (async () => {
+          try {
+            const res = await Api.messages.markRead(userId as string);
+            // notify other parts (NavBar, conversation list) to refresh
+            // include backend response (e.g. { marked: N }) for optimistic update
+            window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail: res }));
+          } catch (e) {
+            // ignore if unauthenticated or endpoint missing
+          }
+        })();
       } catch (e: any) {
-        setError(String(e.message ?? e));
+        setError(String(e?.message ?? e));
+        setMessages([]);
       } finally {
         setLoading(false);
+      }
+    })();
+
+    // try load other user's display name if available
+    (async () => {
+      try {
+        const p = await Api.profile.getById(userId as string);
+        const name = p?.profile?.display_name || p?.email?.split('@')[0] || null;
+        setOtherName(name);
+      } catch (e) {
+        // ignore
       }
     })();
 
@@ -89,10 +113,10 @@ function MessagesContent() {
     }
     pollingRef.current = window.setInterval(async () => {
       try {
-        const r = await fetch(`${API_BASE.replace(/\/$/, '')}/messages/conversation?user=${encodeURIComponent(userId)}`);
-        if (!r.ok) return;
-        const js = await r.json();
-        const items: any[] = js.items || js || [];
+        const js = await Api.messages.getConversation(userId as string).catch(() => null);
+        if (!js) return;
+        const jsAny: any = js;
+        const items: any[] = Array.isArray(jsAny) ? jsAny : (jsAny.items || jsAny || []);
         // merge new messages by id (append only unseen)
         setMessages((prev) => {
           const existing = new Set(prev.map((m) => String(m.id)));
@@ -137,9 +161,27 @@ function MessagesContent() {
     })();
   }, []);
 
+  // when no userId is selected, try to load recent conversations list
+  useEffect(() => {
+    if (userId) return;
+    setConversations(null);
+    (async () => {
+      try {
+        const js = await Api.messages.getConversations();
+        const jsAny: any = js;
+        const items: any[] = Array.isArray(jsAny) ? jsAny : (jsAny.items || jsAny || []);
+        setConversations(items);
+      } catch (e) {
+        setConversations([]);
+      }
+    })();
+  }, [userId]);
+
   const send = async () => {
     if (!userId) return alert('請提供收件人 ID');
     if (!text.trim()) return;
+    if (sending) return; // prevent duplicate sends
+    setSending(true);
     try {
       // use postJSON which attaches Authorization header automatically when available
       const js: any = await postJSON('/messages', { recipient_id: userId, body: text });
@@ -161,6 +203,9 @@ function MessagesContent() {
         return;
       }
       alert(`送出失敗：${msg}`);
+    } finally {
+      setSending(false);
+      try { textareaRef.current?.focus(); } catch (e) {}
     }
   };
 
@@ -176,10 +221,34 @@ function MessagesContent() {
         </div>
 
         {!userId ? (
-          <div className="bg-gray-800 p-6 rounded">請從好友列表或個人頁面點選「私訊」，或在網址列加上 `?user=&lt;user_id&gt;`。</div>
+          // show conversation list when no specific user is selected
+          <div>
+            {conversations === null ? (
+              <div className="bg-gray-800 p-6 rounded">請從好友列表或個人頁面點選「私訊」，或在網址列加上 `?user=&lt;user_id&gt;`。嘗試載入聊天室清單中…</div>
+            ) : conversations.length === 0 ? (
+              <div className="bg-gray-800 p-6 rounded">目前沒有聊天室。請先向好友發起私訊。</div>
+            ) : (
+              <div className="bg-gray-800 p-4 rounded">
+                <div className="mb-3 font-medium">聊天室</div>
+                <div className="flex flex-col gap-2">
+                  {conversations.map((c) => (
+                    <Link key={c.user_id} href={`/messages?user=${c.user_id}`} className="p-3 bg-gray-700 rounded flex justify-between items-center hover:bg-gray-600">
+                      <div>
+                        <div className="font-medium">{c.display_name || c.user_id}</div>
+                        <div className="text-sm text-gray-300">{c.last_message || '—'}</div>
+                      </div>
+                      {c.unread > 0 && (
+                        <div className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-red-600 text-white">{c.unread}</div>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           <>
-            <div className="mb-4 text-sm text-gray-300">與使用者 <strong>{userId}</strong> 的對話頁面。</div>
+            <div className="mb-4 text-sm text-gray-300">與使用者 <strong>{otherName ?? userId}</strong> 的對話頁面。</div>
 
             {error && (
               <div className="mb-4 p-3 bg-red-700 text-sm rounded">無法載入對話：{error}</div>
@@ -204,9 +273,12 @@ function MessagesContent() {
 
             <div className="flex gap-2">
               <textarea
+                ref={textareaRef}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => {
+                  // prevent sending while in-flight
+                  if (sending) return;
                   // Enter to send, Shift+Enter for newline
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -218,7 +290,16 @@ function MessagesContent() {
                 rows={3}
               />
               <div className="flex flex-col gap-2">
-                <button onClick={send} className="px-4 py-2 bg-green-600 rounded">送出</button>
+                <button onClick={send} disabled={sending} aria-busy={sending} className={`px-4 py-2 rounded ${sending ? 'bg-green-400 cursor-wait' : 'bg-green-600'}`}>
+                  {sending ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="white" strokeOpacity="0.2" strokeWidth="4"/><path d="M22 12a10 10 0 00-10-10" stroke="white" strokeWidth="4" strokeLinecap="round"/></svg>
+                      <span>傳送中</span>
+                    </span>
+                  ) : (
+                    '送出'
+                  )}
+                </button>
               </div>
             </div>
           </>
