@@ -65,7 +65,16 @@ export default function NavBar() {
     const loadMessagesCount = async () => {
       try {
         const js = await Api.messages.unreadCount();
-        setMessagesCount(js?.count ?? 0);
+        const newCount = js?.count ?? 0;
+        // if the unread count changed, update and notify other parts to refresh
+        setMessagesCount((prev) => {
+          if (prev !== newCount) {
+            try {
+              window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail: { unreadCountChanged: true, count: newCount } }));
+            } catch (e) {}
+          }
+          return newCount;
+        });
       } catch (e) {
         setMessagesCount(0);
       }
@@ -86,8 +95,15 @@ export default function NavBar() {
       try {
         const ce = ev as CustomEvent<any>;
         const detail = ce?.detail;
-        if (detail && typeof detail.marked === 'number') {
+        // If backend provided exact count, use it (most authoritative)
+        if (detail && typeof detail.count === 'number') {
+          setMessagesCount(detail.count);
+        } else if (detail && typeof detail.unreadCount === 'number') {
+          setMessagesCount(detail.unreadCount);
+        } else if (detail && typeof detail.marked === 'number') {
           setMessagesCount((prev) => Math.max(0, prev - detail.marked));
+          // re-sync from server to ensure counts are consistent (handles races)
+          loadMessagesCount();
         } else {
           // otherwise reload from server
           loadMessagesCount();

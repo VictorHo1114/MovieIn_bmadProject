@@ -2,12 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from db.database import get_db
 from sqlalchemy.orm import Session
+import logging
 
 # auth + user model
 from app.core.security import get_current_user
 from app.models import User
 
 router = APIRouter(prefix="/api/v1/messages", tags=["messages"])
+
+logger = logging.getLogger(__name__)
 
 
 def _existing_columns(db: Session, table: str = "messages"):
@@ -186,7 +189,19 @@ def mark_conversation_read(payload: dict, db: Session = Depends(get_db), current
         res = db.execute(upd, {"other": other, "me": str(current_user.user_id)})
         rows = res.fetchall()
         db.commit()
-        return {"marked": len(rows)}
+
+        # return the number of rows marked plus the new unread count for the current user
+        try:
+            q_count = text(f"SELECT COUNT(*) FROM messages WHERE {recipient_cond} AND is_read = false")
+            cnt_res = db.execute(q_count, {"me": str(current_user.user_id)})
+            cnt_row = cnt_res.fetchone()
+            unread_now = int(cnt_row[0]) if cnt_row and cnt_row[0] is not None else 0
+        except Exception:
+            unread_now = None
+
+        return {"marked": len(rows), "unread_count": unread_now}
     except Exception as e:
         db.rollback()
+        logger.exception("Error in mark_conversation_read: %s", e)
+        # Return more detailed message for debugging in dev environment
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

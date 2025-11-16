@@ -58,10 +58,13 @@ function MessagesContent() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [otherName, setOtherName] = useState<string | null>(null);
   const [conversations, setConversations] = useState<any[] | null>(null);
+  const [conversationsLoading, setConversationsLoading] = useState<boolean>(false);
   const [sending, setSending] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const pollingRef = useRef<number | null>(null);
+  const convPollRef = useRef<number | null>(null);
+  const lastMessageRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -80,9 +83,16 @@ function MessagesContent() {
         (async () => {
           try {
             const res = await Api.messages.markRead(userId as string);
+            // fetch current unread_count to sync badge exactly
+            let uc: any = null;
+            try {
+              uc = await Api.messages.unreadCount();
+            } catch (err) {
+              uc = null;
+            }
+            const detail = Object.assign({}, res || {}, { unreadCount: uc?.count });
             // notify other parts (NavBar, conversation list) to refresh
-            // include backend response (e.g. { marked: N }) for optimistic update
-            window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail: res }));
+            window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail }));
           } catch (e) {
             // ignore if unauthenticated or endpoint missing
           }
@@ -139,11 +149,18 @@ function MessagesContent() {
 
   // scroll to bottom whenever messages change
   useEffect(() => {
+    // if we have a direct ref to the last message, scroll it into view.
+    if (lastMessageRef.current) {
+      try {
+        lastMessageRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+      } catch (e) {}
+      return;
+    }
     if (!containerRef.current) return;
     // small timeout to allow DOM update
     const t = window.setTimeout(() => {
       try {
-        containerRef.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' });
+        containerRef.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'auto' });
       } catch (e) {}
     }, 80);
     return () => window.clearTimeout(t);
@@ -164,8 +181,9 @@ function MessagesContent() {
   // when no userId is selected, try to load recent conversations list
   useEffect(() => {
     if (userId) return;
-    setConversations(null);
-    (async () => {
+
+    const loadConversations = async () => {
+      setConversationsLoading(true);
       try {
         const js = await Api.messages.getConversations();
         const jsAny: any = js;
@@ -173,8 +191,42 @@ function MessagesContent() {
         setConversations(items);
       } catch (e) {
         setConversations([]);
+      } finally {
+        setConversationsLoading(false);
       }
-    })();
+    };
+
+    // initial load
+    loadConversations();
+
+    // refresh when other parts of app dispatch updates
+    const handleConvUpdated = (ev: Event) => {
+      try {
+        const ce = ev as CustomEvent<any>;
+        // if detail contains info, just reload server-side to ensure consistency
+        loadConversations();
+      } catch (e) {
+        loadConversations();
+      }
+    };
+    window.addEventListener('conversationsUpdated', handleConvUpdated as EventListener);
+
+    // polling fallback to keep list fresh
+    if (convPollRef.current) {
+      window.clearInterval(convPollRef.current);
+      convPollRef.current = null;
+    }
+    convPollRef.current = window.setInterval(() => {
+      loadConversations();
+    }, 5000);
+
+    return () => {
+      window.removeEventListener('conversationsUpdated', handleConvUpdated as EventListener);
+      if (convPollRef.current) {
+        window.clearInterval(convPollRef.current);
+        convPollRef.current = null;
+      }
+    };
   }, [userId]);
 
   const send = async () => {
@@ -194,6 +246,10 @@ function MessagesContent() {
         const now = new Date().toISOString();
         setMessages((prev) => [...prev, { id: `local-${now}`, sender_id: currentUserId ?? 'me', recipient_id: userId, body: text, created_at: now }]);
       }
+      // notify other parts to refresh their conversation lists / unread counts
+      try {
+        window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail: { sent: true } }));
+      } catch (e) {}
       setText('');
     } catch (e: any) {
       const msg = String(e.message ?? e);
@@ -223,15 +279,20 @@ function MessagesContent() {
         {!userId ? (
           // show conversation list when no specific user is selected
           <div>
-            {conversations === null ? (
+                {conversations === null && !conversationsLoading ? (
               <div className="bg-gray-800 p-6 rounded">請從好友列表或個人頁面點選「私訊」，或在網址列加上 `?user=&lt;user_id&gt;`。嘗試載入聊天室清單中…</div>
-            ) : conversations.length === 0 ? (
+            ) : conversations && conversations.length === 0 ? (
               <div className="bg-gray-800 p-6 rounded">目前沒有聊天室。請先向好友發起私訊。</div>
             ) : (
               <div className="bg-gray-800 p-4 rounded">
-                <div className="mb-3 font-medium">聊天室</div>
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="font-medium">聊天室</div>
+                  <div className="text-sm text-gray-300 ml-2 w-20 text-right">
+                    {conversationsLoading ? '載入中…' : ''}
+                  </div>
+                </div>
                 <div className="flex flex-col gap-2">
-                  {conversations.map((c) => (
+                  {(conversations || []).map((c) => (
                     <Link key={c.user_id} href={`/messages?user=${c.user_id}`} className="p-3 bg-gray-700 rounded flex justify-between items-center hover:bg-gray-600">
                       <div>
                         <div className="font-medium">{c.display_name || c.user_id}</div>
@@ -261,8 +322,12 @@ function MessagesContent() {
                 <div className="text-gray-400">目前沒有訊息。</div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {messages.map((m) => (
-                    <div key={m.id} className={`p-2 rounded ${m.sender_id === currentUserId ? 'bg-indigo-600 self-end' : 'bg-gray-700 self-start'}`}>
+                  {messages.map((m, idx) => (
+                    <div
+                      key={m.id}
+                      ref={idx === messages.length - 1 ? lastMessageRef : undefined}
+                      className={`p-2 rounded ${m.sender_id === currentUserId ? 'bg-indigo-600 self-end' : 'bg-gray-700 self-start'}`}
+                    >
                       <div className="text-sm">{m.body}</div>
                       <div className="text-xs text-gray-300 mt-1">{new Date(m.created_at).toLocaleString?.()}</div>
                     </div>

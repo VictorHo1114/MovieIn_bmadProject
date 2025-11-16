@@ -33,6 +33,45 @@ function getAuthHeaders(): HeadersInit {
 }
 
 /**
+ * 是否在開發/本機環境下（用於額外把錯誤內容印到 console）
+ */
+function shouldLogHttpErrors(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname || '';
+  const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local');
+  const nodeEnv = (typeof process !== 'undefined' && (process as any).env && (process as any).env.NODE_ENV) || undefined;
+  return isLocalHost || nodeEnv !== 'production';
+}
+
+async function handleNonOk(res: Response, path: string): Promise<never> {
+  const text = await res.text().catch(() => '');
+  if (shouldLogHttpErrors()) {
+    try {
+      const maybeJson = JSON.parse(text);
+      // eslint-disable-next-line no-console
+      console.groupCollapsed(`[http] ${res.status} ${path}`);
+      // eslint-disable-next-line no-console
+      console.error('HTTP error response (parsed JSON):', maybeJson);
+      // eslint-disable-next-line no-console
+      console.warn('Response headers:', Array.from(res.headers.entries()));
+      // eslint-disable-next-line no-console
+      console.groupEnd();
+    } catch (e) {
+      // not JSON
+      // eslint-disable-next-line no-console
+      console.groupCollapsed(`[http] ${res.status} ${path}`);
+      // eslint-disable-next-line no-console
+      console.error('HTTP error response (text):', text);
+      // eslint-disable-next-line no-console
+      console.warn('Response headers:', Array.from(res.headers.entries()));
+      // eslint-disable-next-line no-console
+      console.groupEnd();
+    }
+  }
+  throw new Error(`[${res.status}] ${path} ${text}`);
+}
+
+/**
  * GET 請求（自動附加 Auth 標頭）
  */
 export async function getJSON<T>(path: string, init?: RequestInit): Promise<T> {
@@ -47,10 +86,8 @@ export async function getJSON<T>(path: string, init?: RequestInit): Promise<T> {
   };
 
   const res = await fetch(buildUrl(path), mergedInit);
-  
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`[${res.status}] ${path} ${text}`);
+    return handleNonOk(res, path);
   }
   return res.json() as Promise<T>;
 }
@@ -79,12 +116,10 @@ export async function postJSON<T>(
   mergedInit.headers = { ...postInit.headers, ...init?.headers };
 
   const res = await fetch(buildUrl(path), mergedInit);
-
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`[${res.status}] ${path} ${text}`);
+    return handleNonOk(res, path);
   }
-  
+
   if (res.status === 204 || !res.headers.get("content-type")?.includes("application/json")) {
     return {} as T; 
   }
@@ -116,10 +151,8 @@ export async function postForm<T>(
   mergedInit.headers = { ...formInit.headers, ...init?.headers };
 
   const res = await fetch(buildUrl(path), mergedInit);
-
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`[${res.status}] ${path} ${text}`);
+    return handleNonOk(res, path);
   }
   return res.json() as Promise<T>;
 }
@@ -148,12 +181,10 @@ export async function patchJSON<T>(
   mergedInit.headers = { ...patchInit.headers, ...init?.headers };
 
   const res = await fetch(buildUrl(path), mergedInit);
-
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`[${res.status}] ${path} ${text}`);
+    return handleNonOk(res, path);
   }
-  
+
   if (res.status === 204 || !res.headers.get("content-type")?.includes("application/json")) {
     return {} as T; 
   }
@@ -219,11 +250,8 @@ export async function deleteJSON(
   const mergedInit = { ...deleteInit, ...init };
 
   const res = await fetch(buildUrl(path), mergedInit);
-
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`[${res.status}] ${path} ${text}`);
+    return handleNonOk(res, path);
   }
-  
   // DELETE 通常回傳 204 No Content，不需要解析 JSON
 }
