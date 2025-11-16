@@ -6,7 +6,7 @@ from uuid import UUID
 
 from app.schemas import user as user_schemas
 from app.models import user as user_models
-from db.database import get_db
+from db.session import get_db
 from app.core.security import get_current_user
 
 router = APIRouter()

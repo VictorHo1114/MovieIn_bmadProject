@@ -206,3 +206,52 @@ async def update_watchlist_item(
         priority=item.priority,
         movie=_build_frontend_movie(movie),
     )
+
+
+@router.get("/public/{user_id}", response_model=WatchlistResponse, tags=["public"])
+async def get_watchlist_public(
+    user_id: str,
+    db: Session = Depends(get_db),
+):
+    """取得任一使用者的公開 Watchlist（預設公開）"""
+    # 嘗試解析 UUID，容錯處理
+    try:
+        from uuid import UUID as _UUID
+
+        parsed = _UUID(user_id)
+    except Exception:
+        parsed = None
+
+    if parsed is not None:
+        items = (
+            db.query(Watchlist)
+            .filter(Watchlist.user_id == parsed)
+            .order_by(Watchlist.added_at.desc())
+            .all()
+        )
+    else:
+        items = (
+            db.query(Watchlist)
+            .filter(Watchlist.user_id == user_id)
+            .order_by(Watchlist.added_at.desc())
+            .all()
+        )
+
+    watchlist_items = []
+    for item in items:
+        movie = db.query(Movie).filter(Movie.tmdb_id == item.tmdb_id).first()
+        if movie:
+            watchlist_items.append(
+                WatchlistItem(
+                    id=item.id,
+                    user_id=item.user_id,
+                    tmdb_id=item.tmdb_id,
+                    added_at=item.added_at,
+                    notes=item.notes,
+                    is_watched=item.is_watched,
+                    priority=item.priority,
+                    movie=_build_frontend_movie(movie),
+                )
+            )
+
+    return WatchlistResponse(items=watchlist_items, total=len(watchlist_items))

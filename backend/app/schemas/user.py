@@ -13,10 +13,10 @@ class ProfileBase(BaseModel):
     """
     display_name: str | None = None
     avatar_url: str | None = None
-    
-    # (可選) 根據你的 goal_2 擴充
-    # locale: str | None = None
-    # adult_content_opt_in: bool = False
+    bio: str | None = None
+    favorite_genres: list[str] | None = None
+    locale: str | None = None
+    adult_content_opt_in: bool = False
 
     class Config:
         from_attributes = True # 關鍵！允許 Pydantic 從 SQLAlchemy model 讀取資料
@@ -91,7 +91,10 @@ class ProfileUpdate(BaseModel):
     """
     display_name: str | None = None
     avatar_url: str | None = None
-    # (未來可以擴充 locale 等)
+    bio: str | None = None
+    favorite_genres: list[str] | None = None
+    locale: str | None = None
+    adult_content_opt_in: bool | None = None
 
     class Config:
         from_attributes = True

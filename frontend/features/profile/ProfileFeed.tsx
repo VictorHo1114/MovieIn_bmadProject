@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Api } from '../../lib/api';
 import { UserPublic } from '../../lib/types/user';
+import ProfileEditorClient from '../../components/ProfileEditorClient';
 import {
   FaUserCircle,
   FaHeart,
@@ -44,16 +45,34 @@ export function ProfileFeed() {
   // --- 載入使用者資料 ---
   useEffect(() => {
     const fetchUser = async () => {
+      const otherId = searchParams.get('id') || searchParams.get('user');
       try {
-        const userData = await Api.profile.me();
-        setUser(userData);
-        setDisplayName(userData.profile?.display_name || '');
-        setIsLoading(false);
+        if (otherId) {
+          // Viewing another user's public profile
+          const userData = await Api.profile.getById(otherId);
+          setUser(userData);
+          setDisplayName(userData.profile?.display_name || '');
+          setIsLoading(false);
+        } else {
+          // Viewing own profile
+          try {
+            const userData = await Api.profile.me();
+            setUser(userData);
+            setDisplayName(userData.profile?.display_name || '');
+          } catch (err) {
+            console.error('Failed to fetch current user:', err);
+            setError('無法載入個人資料，請重新登入。');
+            localStorage.removeItem('authToken');
+            router.push('/login');
+            return;
+          } finally {
+            setIsLoading(false);
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch user:', error);
-        setError('無法載入個人資料，請重新登入。');
-        localStorage.removeItem('authToken');
-        router.push('/login');
+        setError('無法載入該使用者的資料。');
+        setIsLoading(false);
       }
     };
     fetchUser();
@@ -79,6 +98,9 @@ export function ProfileFeed() {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
+
+  // --- 判斷是否在檢視他人個人頁 ---
+  const viewingOther = Boolean(searchParams.get('id') || searchParams.get('user'));
 
   // --- 修改名稱 ---
   const handleProfileUpdate = async (e: React.FormEvent) => {
@@ -281,56 +303,53 @@ export function ProfileFeed() {
                   <h1 className="text-xl font-bold text-gray-900">編輯個人資料</h1>
                 </div>
                 {renderAlerts()}
-                <form
-                  onSubmit={handleProfileUpdate}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                >
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor="displayName"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      顯示名稱
-                    </label>
-                    <input
-                      id="displayName"
-                      type="text"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-gray-900"
-                      placeholder="輸入公開顯示的名稱"
-                      value={displayName}
-                      onChange={(e) => {
-                        setDisplayName(e.target.value);
-                        setError(null);
-                        setSuccessMessage(null);
-                      }}
-                    />
-                  </div>
+                {/* 若在檢視他人個人頁，顯示唯讀模式 */}
+                {!viewingOther ? (
+                  // 顯示現有的 profile 資料摘要，並提供下方的編輯元件作為編輯入口
+                  <div>
+                    <div className="mb-4 bg-white p-4 rounded-lg shadow">
+                      <h2 className="text-lg font-semibold mb-2">個人資料預覽</h2>
+                      <div className="flex items-start gap-4">
+                        <img
+                          src={user?.profile?.avatar_url || '/img/default-avatar.jpg'}
+                          alt={user?.profile?.display_name || '使用者'}
+                          className="w-20 h-20 rounded-full object-cover"
+                        />
+                        <div className="flex-1">
+                          <div className="text-xl font-bold">{user?.profile?.display_name || user?.email}</div>
+                          {user?.profile?.bio ? (
+                            <p className="text-sm text-gray-700 mt-2">{user.profile.bio}</p>
+                          ) : (
+                            <p className="text-sm text-gray-500 mt-2">尚未填寫自我介紹。</p>
+                          )}
 
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor="email"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      電子郵件
-                    </label>
-                    <input
-                      id="email"
-                      type="email"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100 text-gray-400"
-                      value={user?.email || ''}
-                      disabled
-                    />
-                  </div>
+                          <div className="mt-3 text-sm text-gray-600">
+                            <div>喜愛類型: {user?.profile?.favorite_genres?.length ? (user.profile.favorite_genres as string[]).join(', ') : '未設定'}</div>
+                            <div>語言: {user?.profile?.locale || '未設定'}</div>
+                            <div>成人內容顯示: {user?.profile?.adult_content_opt_in ? '已允許' : '未允許'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-                  <div className="md:col-span-2 text-left">
-                    <button
-                      type="submit"
-                      className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                    >
-                      儲存變更
-                    </button>
+                    {/* 編輯元件（內含編輯按鈕） */}
+                    <div className="mb-4">
+                      <ProfileEditorClient userId={user?.user_id as unknown as string} />
+                    </div>
                   </div>
-                </form>
+                ) : (
+                  <div className="p-4 bg-gray-50 rounded">
+                    <p className="text-sm text-gray-700">目前正在檢視他人公開個人頁。要編輯請移除網址中的 <code>id</code> 參數或前往「我的個人頁」。</p>
+                    <div className="mt-3">
+                      <button
+                        onClick={() => router.push('/profile')}
+                        className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        回到我的個人頁
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
