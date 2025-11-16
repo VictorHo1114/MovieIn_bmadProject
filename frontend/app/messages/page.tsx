@@ -61,11 +61,14 @@ function MessagesContent() {
   const [conversations, setConversations] = useState<any[] | null>(null);
   const [conversationsLoading, setConversationsLoading] = useState<boolean>(false);
   const [sending, setSending] = useState(false);
+  const [newMessagesCount, setNewMessagesCount] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const isAtBottomRef = useRef<boolean>(true);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const pollingRef = useRef<number | null>(null);
   const convPollRef = useRef<number | null>(null);
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
+  const knownIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!userId) return;
@@ -80,7 +83,12 @@ function MessagesContent() {
         const jsAny: any = js;
         const items: any[] = Array.isArray(jsAny) ? jsAny : (jsAny.items || jsAny || []);
         // keep only the most recent messages to avoid loading huge histories in the UI
-        setMessages(items.slice(-RECENT_LIMIT));
+        const recent = items.slice(-RECENT_LIMIT);
+        setMessages(recent);
+        // record known server-side ids so polling can decide what is truly new
+        try {
+          knownIdsRef.current = new Set(recent.filter((m: any) => !String(m.id).startsWith('local-')).map((m: any) => String(m.id)));
+        } catch (e) {}
         // mark messages in this conversation as read (best-effort)
         (async () => {
           try {
@@ -135,20 +143,77 @@ function MessagesContent() {
         setMessages((prev) => {
           const existing = new Set(prev.map((m) => String(m.id)));
           const toAdd = items.filter((it) => !existing.has(String(it.id)));
+          // debug: log prev ids and incoming toAdd ids to diagnose duplicate/new-count issues
+          try {
+            // eslint-disable-next-line no-console
+            console.log('[messages.poll] prevIds=', Array.from(existing).slice(-10));
+            // eslint-disable-next-line no-console
+            console.log('[messages.poll] toAddIds=', toAdd.map((t) => String(t.id)).slice(-10));
+          } catch (e) {}
           if (toAdd.length === 0) return prev;
-          let merged = [...prev, ...toAdd];
+
+          // handle possible local optimistic messages: replace placeholders with server messages
+          let merged = [...prev];
+          for (const newMsg of toAdd) {
+            const matchedIndex = merged.findIndex((m) => String(m.id).startsWith('local-') && m.body === newMsg.body);
+            if (matchedIndex !== -1) {
+              merged[matchedIndex] = newMsg;
+            } else {
+              merged.push(newMsg);
+            }
+          }
           // trim to RECENT_LIMIT
           if (merged.length > RECENT_LIMIT) merged = merged.slice(merged.length - RECENT_LIMIT);
+          // dedupe by id (preserve first occurrence)
+          const seen = new Set<string>();
+          const deduped: any[] = [];
+          for (const m of merged) {
+            const idStr = String(m.id);
+            if (seen.has(idStr)) continue;
+            seen.add(idStr);
+            deduped.push(m);
+          }
+          merged = deduped;
+          // NOTE: do NOT update knownIdsRef here — keep previous known set until
+          // we've computed uniqueAdded below. Updating early causes newly-merged
+          // server ids to be considered "known" and prevents the unseen counter.
           // if window visible, mark up to latest id as read (best-effort)
           if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
             try {
               const lastId = items.length ? items[items.length - 1].id : undefined;
-              if (lastId) {
-                Api.messages.markRead(userId as string, lastId).then((res) => {
-                  // notify other parts
-                  window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail: res }));
-                }).catch(() => {});
-              }
+                  if (lastId) {
+                    // if user is at bottom, mark as read; otherwise increment "new messages" badge
+                    if (isAtBottomRef.current) {
+                              Api.messages.markRead(userId as string, lastId).then((res) => {
+                                window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail: res }));
+                              }).catch(() => {});
+                            } else {
+                              // compute how many *unique* new ids were added relative to prev
+                              // NOTE: if a server-provided message replaces a local optimistic placeholder
+                              // (id starts with 'local-' and same body), do NOT count it as a new unseen message.
+                              // use known server ids (persisted across polls) to determine true new server messages
+                              const known = knownIdsRef.current || new Set<string>();
+                              let uniqueAdded = 0;
+                              const newlyKnown: string[] = [];
+                              for (const m of toAdd) {
+                                const idStr = String(m.id);
+                                if (known.has(idStr)) continue;
+                                // if we already have a local optimistic placeholder with same body, don't count as new
+                                const hasLocalMatch = prev.some((p) => String(p.id).startsWith('local-') && p.body === m.body);
+                                if (hasLocalMatch) continue;
+                                uniqueAdded += 1;
+                                newlyKnown.push(idStr);
+                              }
+                              if (newlyKnown.length > 0) {
+                                try { for (const id of newlyKnown) knownIdsRef.current.add(id); } catch (e) {}
+                              }
+                              if (uniqueAdded > 0) {
+                                // eslint-disable-next-line no-console
+                                console.log('[messages.poll] uniqueAdded=', uniqueAdded, 'prevCount=', newMessagesCount);
+                                setNewMessagesCount((n) => n + uniqueAdded);
+                              }
+                            }
+                  }
             } catch (e) {}
           }
           return merged;
@@ -168,18 +233,21 @@ function MessagesContent() {
 
   // scroll to bottom whenever messages change
   useEffect(() => {
+    // if the user has manually scrolled up (isAtBottomRef === false), do not auto-scroll
+    if (!isAtBottomRef.current) return;
+
     // if we have a direct ref to the last message, scroll it into view.
     if (lastMessageRef.current) {
       try {
-        lastMessageRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+        lastMessageRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
       } catch (e) {}
       return;
     }
     if (!containerRef.current) return;
     // small timeout to allow DOM update
-    const t = window.setTimeout(() => {
+      const t = window.setTimeout(() => {
       try {
-        containerRef.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'auto' });
+        containerRef.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' });
       } catch (e) {}
     }, 80);
     return () => window.clearTimeout(t);
@@ -189,11 +257,11 @@ function MessagesContent() {
   const scrollToBottomNow = () => {
     try {
       if (lastMessageRef.current) {
-        lastMessageRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+        lastMessageRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
         return;
       }
       if (containerRef.current) {
-        containerRef.current.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'auto' });
+        containerRef.current.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' });
       }
     } catch (e) {
       // ignore
@@ -206,8 +274,31 @@ function MessagesContent() {
     // wait until loading finishes, then scroll to bottom
     if (loading) return;
     const t = window.setTimeout(() => scrollToBottomNow(), 60);
+    // mark that we are at bottom after initial scroll
+    isAtBottomRef.current = true;
     return () => window.clearTimeout(t);
   }, [userId, loading]);
+
+  // handle user manual scrolling: if user scrolls away from bottom, disable auto-scroll
+  const onContainerScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const threshold = 80; // px from bottom considered "at bottom"
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+    isAtBottomRef.current = atBottom;
+    if (atBottom) {
+      // when user scrolls back to bottom, clear any unseen counter and mark read
+      setNewMessagesCount(0);
+      (async () => {
+        try {
+          const lastId = messages.length ? messages[messages.length - 1].id : undefined;
+          if (lastId && userId) {
+            const res = await Api.messages.markRead(userId as string, lastId).catch(() => null);
+            if (res) window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail: res }));
+          }
+        } catch (e) {}
+      })();
+    }
+  };
 
   // visibility / focus handlers: when user returns to the page, mark conversation as read up to last message
   useEffect(() => {
@@ -313,16 +404,22 @@ function MessagesContent() {
       const inserted = js.item || js;
       // optimistic replacement with server-returned item if available
       if (inserted && inserted.id) {
+        try { console.log('[messages.send] server returned inserted id=', String(inserted.id)); } catch (e) {}
         setMessages((prev) => {
           const merged = [...prev, inserted];
           return merged.length > RECENT_LIMIT ? merged.slice(merged.length - RECENT_LIMIT) : merged;
         });
+        // user just sent a message -> ensure we scroll to bottom and consider user at bottom
+        try { isAtBottomRef.current = true; scrollToBottomNow(); } catch (e) {}
       } else {
         const now = new Date().toISOString();
+        try { console.log('[messages.send] server did not return inserted id, creating local placeholder'); } catch (e) {}
         setMessages((prev) => {
           const merged = [...prev, { id: `local-${now}`, sender_id: currentUserId ?? 'me', recipient_id: userId, body: text, created_at: now }];
           return merged.length > RECENT_LIMIT ? merged.slice(merged.length - RECENT_LIMIT) : merged;
         });
+        // user just sent a message -> ensure we scroll to bottom and consider user at bottom
+        try { isAtBottomRef.current = true; scrollToBottomNow(); } catch (e) {}
       }
       // notify other parts to refresh their conversation lists / unread counts
       try {
@@ -393,7 +490,7 @@ function MessagesContent() {
               <div className="mb-4 p-3 bg-red-700 text-sm rounded">無法載入對話：{error}</div>
             )}
 
-            <div ref={containerRef} className="bg-gray-800 p-4 rounded mb-4 h-64 overflow-auto">
+            <div ref={containerRef} onScroll={onContainerScroll} className="relative bg-gray-800 p-4 rounded mb-4 h-64 overflow-auto">
               {loading ? (
                 <div>載入中…</div>
               ) : messages.length === 0 ? (
@@ -413,6 +510,29 @@ function MessagesContent() {
                 </div>
               )}
             </div>
+              {/* new messages floating indicator (shown when user scrolled up) */}
+              {newMessagesCount > 0 && !isAtBottomRef.current && (
+                <div className="absolute bottom-3 right-3">
+                  <button
+                    onClick={async () => {
+                      try {
+                        // scroll to bottom and mark as read up to last message
+                        isAtBottomRef.current = true;
+                        scrollToBottomNow();
+                        const lastId = messages.length ? messages[messages.length - 1].id : undefined;
+                        if (lastId) {
+                          const res = await Api.messages.markRead(userId as string, lastId).catch(() => null);
+                          if (res) window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail: res }));
+                        }
+                        setNewMessagesCount(0);
+                      } catch (e) {}
+                    }}
+                    className="px-3 py-1 bg-indigo-600 text-white rounded shadow-lg text-sm"
+                  >
+                    新訊息 {newMessagesCount}，跳到底部
+                  </button>
+                </div>
+              )}
 
             <div className="flex gap-2">
               <textarea

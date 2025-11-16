@@ -7,6 +7,7 @@ import logging
 # auth + user model
 from app.core.security import get_current_user
 from app.models import User
+import time
 
 router = APIRouter(prefix="/api/v1/messages", tags=["messages"])
 
@@ -15,9 +16,17 @@ logger = logging.getLogger(__name__)
 
 def _existing_columns(db: Session, table: str = "messages"):
     """Return a set of column names present for `table` in the current DB schema."""
+    # simple runtime cache to avoid querying information_schema on every request
+    if not hasattr(_existing_columns, '_cache'):
+        _existing_columns._cache = {}
+    cache = _existing_columns._cache
+    if table in cache:
+        return cache[table]
     try:
         res = db.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = :t"), {"t": table})
-        return set(r[0] for r in res.fetchall())
+        cols = set(r[0] for r in res.fetchall())
+        cache[table] = cols
+        return cols
     except Exception:
         return set()
 
@@ -70,47 +79,54 @@ def post_message(payload: dict, db: Session = Depends(get_db), current_user: Use
     if not recipient_id or not body:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="recipient_id and body are required")
 
-    try:
-        # Try to insert into common schema (recipient_id, body) first.
-        ins = text(
-            "INSERT INTO messages (sender_id, recipient_id, body, is_read, created_at) VALUES (:s, :r, :b, false, now()) RETURNING id, sender_id, recipient_id, body, is_read, created_at"
+    cols = _existing_columns(db)
+    has_receiver = "receiver_id" in cols
+    has_content = "content" in cols
+
+    # choose insert statement based on detected schema to avoid failing+fallback which costs time
+    if has_receiver and has_content:
+        ins_text = (
+            "INSERT INTO messages (sender_id, receiver_id, content, is_read, created_at) "
+            "VALUES (:s, :r, :b, false, now()) RETURNING id, sender_id, receiver_id, content, is_read, created_at"
         )
-        res = db.execute(ins, {"s": sender_id, "r": recipient_id, "b": body})
+        params = {"s": sender_id, "r": recipient_id, "b": body}
+        normalize_receiver = True
+    else:
+        # default to recipient/body schema
+        ins_text = (
+            "INSERT INTO messages (sender_id, recipient_id, body, is_read, created_at) "
+            "VALUES (:s, :r, :b, false, now()) RETURNING id, sender_id, recipient_id, body, is_read, created_at"
+        )
+        params = {"s": sender_id, "r": recipient_id, "b": body}
+        normalize_receiver = False
+
+    try:
+        logger.debug("post_message: executing insert; normalize_receiver=%s", normalize_receiver)
+        t0 = time.time()
+        res = db.execute(text(ins_text), params)
+        t1 = time.time()
         db.commit()
+        t2 = time.time()
+        logger.debug("post_message timings: execute=%.3fms commit=%.3fms total=%.3fms", (t1-t0)*1000, (t2-t1)*1000, (t2-t0)*1000)
         row = res.fetchone()
-        if row:
-            return {"item": dict(row._mapping)}
-        return {"item": {}}
-    except Exception as e1:
-        # If first insert failed (schema differences), try alternate columns (receiver_id, content).
-        try:
-            db.rollback()
-        except Exception:
-            pass
-        try:
-            ins2 = text(
-                "INSERT INTO messages (sender_id, receiver_id, content, is_read, created_at) VALUES (:s, :r, :b, false, now()) RETURNING id, sender_id, receiver_id, content, is_read, created_at"
-            )
-            res2 = db.execute(ins2, {"s": sender_id, "r": recipient_id, "b": body})
-            db.commit()
-            row2 = res2.fetchone()
-            if row2:
-                # normalize returned keys to match frontend expectation
-                data = dict(row2._mapping)
-                normalized = {
-                    "id": data.get("id"),
-                    "sender_id": data.get("sender_id"),
-                    "recipient_id": data.get("receiver_id"),
-                    "body": data.get("content"),
-                    "is_read": data.get("is_read"),
-                    "created_at": data.get("created_at"),
-                }
-                return {"item": normalized}
+        if not row:
             return {"item": {}}
-        except Exception as e2:
-            db.rollback()
-            # return the original error for debugging
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"first: {e1}; second: {e2}")
+        data = dict(row._mapping)
+        if normalize_receiver:
+            normalized = {
+                "id": data.get("id"),
+                "sender_id": data.get("sender_id"),
+                "recipient_id": data.get("receiver_id"),
+                "body": data.get("content"),
+                "is_read": data.get("is_read"),
+                "created_at": data.get("created_at"),
+            }
+            return {"item": normalized}
+        else:
+            return {"item": data}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.get("/conversations")
