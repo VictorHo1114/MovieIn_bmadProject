@@ -78,6 +78,94 @@ async def get_top10_list(
     return Top10Response(items=top10_items, total=len(top10_items))
 
 
+
+@router.get("/public/{user_id}", response_model=Top10Response, tags=["public"])
+async def get_top10_public(
+    user_id: str,
+    db: Session = Depends(get_db),
+):
+    """取得任一使用者的公開 Top10（預設公開）"""
+    try:
+        from uuid import UUID as _UUID
+
+        parsed = _UUID(user_id)
+    except Exception:
+        parsed = None
+
+    query = db.query(Top10List)
+    if parsed is not None:
+        query = query.filter(Top10List.user_id == parsed)
+    else:
+        query = query.filter(Top10List.user_id == user_id)
+
+    items = query.order_by(Top10List.rank.asc()).all()
+
+    top10_items = []
+    for item in items:
+        movie = db.query(Movie).filter(Movie.tmdb_id == item.tmdb_id).first()
+        if movie:
+            top10_items.append(
+                Top10Item(
+                    id=item.id,
+                    user_id=item.user_id,
+                    tmdb_id=item.tmdb_id,
+                    rank=item.rank,
+                    added_at=item.added_at,
+                    notes=item.notes,
+                    rating_by_user=item.rating_by_user,
+                    category=item.category,
+                    movie=_build_frontend_movie(movie),
+                )
+            )
+
+    return Top10Response(items=top10_items, total=len(top10_items))
+
+
+@router.get("/public/{user_id}", response_model=Top10Response, tags=["public"])
+async def get_top10_public(
+    user_id: str,
+    category: str = None,
+    db: Session = Depends(get_db),
+):
+    """取得任一使用者的公開 Top10（預設公開）"""
+    try:
+        from uuid import UUID as _UUID
+
+        parsed = _UUID(user_id)
+    except Exception:
+        parsed = None
+
+    if parsed is not None:
+        query = db.query(Top10List).filter(Top10List.user_id == parsed)
+    else:
+        query = db.query(Top10List).filter(Top10List.user_id == user_id)
+
+    if category:
+        query = query.filter(Top10List.category == category)
+
+    items = query.order_by(Top10List.rank.asc()).all()
+
+    top10_items = []
+    for item in items:
+        movie = db.query(Movie).filter(Movie.tmdb_id == item.tmdb_id).first()
+        if movie:
+            top10_items.append(
+                Top10Item(
+                    id=item.id,
+                    user_id=item.user_id,
+                    tmdb_id=item.tmdb_id,
+                    rank=item.rank,
+                    added_at=item.added_at,
+                    notes=item.notes,
+                    rating_by_user=item.rating_by_user,
+                    category=item.category,
+                    movie=_build_frontend_movie(movie),
+                )
+            )
+
+    return Top10Response(items=top10_items, total=len(top10_items))
+
+
 @router.post("/{tmdb_id}", response_model=Top10Item, status_code=status.HTTP_201_CREATED)
 async def add_to_top10(
     tmdb_id: int,

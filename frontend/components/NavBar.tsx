@@ -12,9 +12,12 @@ import {
   FaSignOutAlt,
   FaBars,
   FaTimes,
+  FaUsers,
+  FaEnvelope,
 } from 'react-icons/fa';
 
 import { Api } from '../lib/api';
+import { getJSON } from '@/lib/http';
 import { UserPublic } from '../lib/types/user';
 import { LogoutModal } from './LogoutModal';
 
@@ -25,7 +28,10 @@ export default function NavBar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [user, setUser] = useState<UserPublic | null>(null);
+  const [pendingCount, setPendingCount] = useState<number>(0);
+  const [messagesCount, setMessagesCount] = useState<number>(0);
   const timeoutRef = useRef<number | null>(null);
+  const pollRef = useRef<number | null>(null);
 
   const fetchUser = async () => {
     try {
@@ -41,9 +47,100 @@ export default function NavBar() {
   useEffect(() => {
     fetchUser();
 
+    // load pending friend requests count for badge (defensive)
+    const loadPending = async () => {
+      try {
+        // Prefer an endpoint that returns only a count for efficiency
+        const res = await getJSON<{ count: number }>('/friends/requests/count');
+        const n = res && typeof res.count === 'number' ? res.count : 0;
+        setPendingCount(n);
+      } catch (e) {
+        console.error('Failed to load pending friend requests count:', e);
+        // On error, ensure badge is hidden by setting 0
+        setPendingCount(0);
+      }
+    };
+    loadPending();
+
+    const loadMessagesCount = async () => {
+      try {
+        const js = await Api.messages.unreadCount();
+        const newCount = js?.count ?? 0;
+        // if the unread count changed, update and notify other parts to refresh
+        setMessagesCount((prev) => {
+          if (prev !== newCount) {
+            try {
+              window.dispatchEvent(new CustomEvent('conversationsUpdated', { detail: { unreadCountChanged: true, count: newCount } }));
+            } catch (e) {}
+          }
+          return newCount;
+        });
+      } catch (e) {
+        setMessagesCount(0);
+      }
+    };
+    loadMessagesCount();
+
     const handleProfileUpdate = () => fetchUser();
     window.addEventListener('profileUpdated', handleProfileUpdate);
-    return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
+
+    const handleFriendUpdate = () => {
+      loadPending();
+      loadMessagesCount();
+    };
+    window.addEventListener('friendRequestsUpdated', handleFriendUpdate as EventListener);
+
+    const handleConversationsUpdated = (ev: Event) => {
+      // If the event includes a detail with `marked` count, optimistically subtract it.
+      try {
+        const ce = ev as CustomEvent<any>;
+        const detail = ce?.detail;
+        // If backend provided exact count, use it (most authoritative)
+        if (detail && typeof detail.count === 'number') {
+          setMessagesCount(detail.count);
+        } else if (detail && typeof detail.unreadCount === 'number') {
+          setMessagesCount(detail.unreadCount);
+        } else if (detail && typeof detail.marked === 'number') {
+          setMessagesCount((prev) => Math.max(0, prev - detail.marked));
+          // re-sync from server to ensure counts are consistent (handles races)
+          loadMessagesCount();
+        } else {
+          // otherwise reload from server
+          loadMessagesCount();
+        }
+      } catch (e) {
+        loadMessagesCount();
+      }
+    };
+    window.addEventListener('conversationsUpdated', handleConversationsUpdated as EventListener);
+
+    // Poll unread count periodically so badge updates when other users send messages.
+    if (pollRef.current) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+    pollRef.current = window.setInterval(() => {
+      loadMessagesCount();
+    }, 5000);
+
+    const handleWindowFocus = () => loadMessagesCount();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') loadMessagesCount();
+    };
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+      window.removeEventListener('friendRequestsUpdated', handleFriendUpdate as EventListener);
+      window.removeEventListener('conversationsUpdated', handleConversationsUpdated as EventListener);
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (pollRef.current) {
+        window.clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
   }, [router]);
 
   const handleMouseEnter = () => {
@@ -114,6 +211,9 @@ export default function NavBar() {
               <Link href="/popular" className={linkCls('/popular')}>
                 熱門
               </Link>
+              <Link href="/social" className={linkCls('/social')}>
+                交友
+              </Link>
               <Link href="/search" className={linkCls('/search')}>
                 搜尋
               </Link>
@@ -143,6 +243,13 @@ export default function NavBar() {
             {/* Mobile Search Icon */}
             <Link href="/search" className="sm:hidden text-white text-xl hover:text-purple-400 transition-colors">
               <FaSearch />
+            </Link>
+
+            <Link href="/messages" className="relative text-white text-xl hover:text-purple-400 transition-colors">
+              <FaEnvelope />
+              {messagesCount > 0 && (
+                <span className="absolute -top-1 -right-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-red-600 text-white">{messagesCount}</span>
+              )}
             </Link>
 
             <li
@@ -181,6 +288,21 @@ export default function NavBar() {
                     <FaUserCircle className="mr-2 h-5 w-5 text-gray-400" />
                     個人資料
                   </Link>
+                      <Link
+                        href="/social/friends"
+                        onClick={() => setIsProfileOpen(false)}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <FaUsers className="mr-2 h-5 w-5 text-gray-400" />
+                        <span className="flex items-center gap-2">
+                          好友
+                          {pendingCount > 0 && (
+                            <span className="ml-1 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-red-600 text-white">
+                              {pendingCount}
+                            </span>
+                          )}
+                        </span>
+                      </Link>
                   <Link
                     href="/profile?tab=watchlist"
                     onClick={() => setIsProfileOpen(false)}
@@ -279,6 +401,35 @@ export default function NavBar() {
                 }`}
               >
                 熱門
+              </Link>
+              <Link 
+                href="/social" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`px-4 py-3 text-base transition-colors ${
+                  pathname === '/social' 
+                    ? 'bg-purple-600/20 text-white font-bold border-l-4 border-purple-400' 
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                交友
+              </Link>
+              <Link 
+                href="/social/friends" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`px-4 py-3 text-base transition-colors ${
+                  pathname === '/social/friends' 
+                    ? 'bg-purple-600/20 text-white font-bold border-l-4 border-purple-400' 
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span>好友</span>
+                  {pendingCount > 0 && (
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-red-600 text-white">
+                      {pendingCount}
+                    </span>
+                  )}
+                </div>
               </Link>
               <Link 
                 href="/search" 

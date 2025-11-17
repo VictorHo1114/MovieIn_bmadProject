@@ -200,6 +200,19 @@ export const Api = {
     updateMe: (data: ProfileUpdate): Promise<UserPublic> => {
       return patchJSON<UserPublic>("/profile/me", data);
     }
+    ,
+    getById: (userId: string) => getJSON<UserPublic>(`/profile/${userId}`),
+  },
+
+  // --- Messages (minimal helpers) ---
+  messages: {
+    // fetch conversation with a single user (existing backend endpoint)
+    getConversation: (otherUserId: string) => getJSON<any[]>(`/messages/conversation?user=${encodeURIComponent(otherUserId)}`),
+    // attempt to list recent conversations (backend may not implement)
+    getConversations: () => getJSON<any[]>(`/messages/conversations`),
+    // unread count helper
+    unreadCount: () => getJSON<{ count: number }>(`/messages/unread_count`),
+    markRead: (userId: string, uptoId?: number | string) => postJSON(`/messages/mark_read`, { user_id: userId, ...(uptoId ? { upto_id: uptoId } : {}) }),
   },
 
   // --- (?��?�? 修改 Auth ---
