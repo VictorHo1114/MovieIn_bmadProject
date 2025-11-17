@@ -4,7 +4,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from uuid import UUID
 
 # --- 依賴我們剛剛建立的檔案 ---
@@ -87,8 +87,8 @@ def get_current_user(
         # 其他錯誤 (例如 UUID 格式不對)
         raise credentials_exception
     
-    # 警衛拿著 user_id 去資料庫撈人
-    user = db.query(User).filter(User.user_id == token_data.user_id).first()
+    # 警衛拿著 user_id 去資料庫撈人，並且主動載入 profile
+    user = db.query(User).options(joinedload(User.profile)).filter(User.user_id == token_data.user_id).first()
     
     if user is None:
         # 如果 Token 裡的 user_id 在資料庫裡找不到 (例如被刪除了)

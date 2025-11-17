@@ -1,7 +1,7 @@
 # 檔案：backend/app/routers/profile.py (新檔案)
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from uuid import UUID
 
 from app.schemas import user as user_schemas
@@ -35,15 +35,24 @@ def update_my_profile(
     update_data = profile_in.model_dump(exclude_unset=True)
 
     # 3. 迭代並更新欄位 (這樣我們未來就可以輕易擴充)
-    for field, value in update_data.items():
-        if value is not None:
-            setattr(profile, field, value)
-    
-    db.add(profile)
-    db.commit()
-    db.refresh(current_user) # 重新整理 'current_user' (它關聯的 profile 變了)
-    
-    return current_user
+    try:
+        for field, value in update_data.items():
+            # 特殊處理 JSONB 欄位 (favorite_genres)
+            if field == "favorite_genres" and value is not None:
+                # 確保是 list 類型，PostgreSQL JSONB 會自動序列化
+                setattr(profile, field, value if isinstance(value, list) else [])
+            elif value is not None:
+                setattr(profile, field, value)
+        
+        db.add(profile)
+        db.commit()
+        db.refresh(current_user) # 重新整理 'current_user' (它關聯的 profile 變了)
+        
+        return current_user
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating profile: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
 
 
 
@@ -67,10 +76,10 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
         parsed = None
 
     if parsed is not None:
-        user = db.query(user_models.User).filter(user_models.User.user_id == parsed).first()
+        user = db.query(user_models.User).options(joinedload(user_models.User.profile)).filter(user_models.User.user_id == parsed).first()
     else:
         # fallback: try matching by string (some deployments may store as text)
-        user = db.query(user_models.User).filter(user_models.User.user_id == user_id).first()
+        user = db.query(user_models.User).options(joinedload(user_models.User.profile)).filter(user_models.User.user_id == user_id).first()
 
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")

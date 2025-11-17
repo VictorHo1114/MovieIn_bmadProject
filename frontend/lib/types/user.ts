@@ -4,8 +4,12 @@
 export interface Profile {
   display_name: string | null;
   avatar_url: string | null;
-  // locale: string | null; // (未來可以擴充)
-  // adult_content_opt_in: boolean; // (未來可以擴充)
+  bio: string | null;
+  favorite_genres: string[] | null;
+  locale: string | null;
+  adult_content_opt_in: boolean;
+  privacy_level: string | null;
+  last_active: string | null; // ISO 8601 datetime string
 }
 
 // 這個 interface 必須 "完全對齊" 
@@ -42,6 +46,11 @@ export type UserLogin = {
 export type ProfileUpdate = {
   display_name?: string | null;
   avatar_url?: string | null;
+  bio?: string | null;
+  favorite_genres?: string[] | null;
+  locale?: string | null;
+  adult_content_opt_in?: boolean | null;
+  privacy_level?: string | null;
 };
 
 // [新增！] 對應 schemas.PasswordChange

@@ -21,6 +21,7 @@ import {
 import { LogoutModal } from "../../components/LogoutModal"
 import { WatchlistSection } from "./WatchlistSection"
 import { Top10Section } from "./Top10Section"
+import { EnhancedProfileEditor } from "../../components/profile/EnhancedProfileEditor"
 
 export function ProfileFeed() {
   const router = useRouter()
@@ -29,6 +30,7 @@ export function ProfileFeed() {
   // --- 狀態管理 ---
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("profile")
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
 
   const [user, setUser] = useState<UserPublic | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -220,9 +222,11 @@ export function ProfileFeed() {
               {/* 左側資訊 */}
               <div className="flex-1">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-3xl font-bold text-white shadow-lg shadow-amber-500/20">
-                    {(user?.profile?.display_name || user?.email || "U")[0].toUpperCase()}
-                  </div>
+                  <img
+                    src={user?.profile?.avatar_url || '/img/default-avatar.jpg'}
+                    alt={user?.profile?.display_name || '使用者'}
+                    className="w-20 h-20 rounded-full object-cover border-4 border-amber-500/30 shadow-lg shadow-amber-500/20"
+                  />
                   <div>
                     <h1 className="text-4xl font-bold text-white mb-1 tracking-tight">
                       {user?.profile?.display_name || "使用者"}
@@ -338,52 +342,103 @@ export function ProfileFeed() {
               {/* 內容 1: 編輯個人資料 */}
               {activeTab === "profile" && (
                 <div>
-                  <div className="mb-6 pb-4 border-b border-slate-700/50">
-                    <h2 className="text-2xl font-bold text-white">編輯個人資料</h2>
-                    <p className="text-slate-400 text-sm mt-1">管理你的公開個人資訊</p>
-                  </div>
-                  {renderAlerts()}
-                  <form onSubmit={handleProfileUpdate} className="space-y-6">
+                  <div className="mb-6 pb-4 border-b border-slate-700/50 flex justify-between items-center">
                     <div>
-                      <label htmlFor="displayName" className="block text-sm font-medium text-slate-300 mb-2">
-                        顯示名稱
-                      </label>
-                      <input
-                        id="displayName"
-                        type="text"
-                        className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
-                        placeholder="輸入公開顯示的名稱"
-                        value={displayName}
-                        onChange={(e) => {
-                          setDisplayName(e.target.value)
-                          setError(null)
-                          setSuccessMessage(null)
-                        }}
-                      />
+                      <h2 className="text-2xl font-bold text-white">
+                        {isEditingProfile ? "編輯個人資料" : "個人資料"}
+                      </h2>
+                      <p className="text-slate-400 text-sm mt-1">
+                        {isEditingProfile ? "管理你的公開個人資訊與交友設定" : "查看你的個人資訊"}
+                      </p>
                     </div>
-
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
-                        電子郵件
-                      </label>
-                      <input
-                        id="email"
-                        type="email"
-                        className="w-full bg-slate-900/30 border border-slate-700/50 rounded-lg px-4 py-3 text-slate-500 cursor-not-allowed"
-                        value={user?.email || ""}
-                        disabled
-                      />
-                    </div>
-
-                    <div className="pt-4">
+                    {!isEditingProfile && (
                       <button
-                        type="submit"
-                        className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30"
+                        onClick={() => setIsEditingProfile(true)}
+                        className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30"
                       >
-                        儲存變更
+                        編輯資料
                       </button>
+                    )}
+                  </div>
+                  
+                  {isEditingProfile ? (
+                    <div>
+                      <EnhancedProfileEditor 
+                        user={user} 
+                        onUpdate={(updated) => {
+                          setUser(updated);
+                          setSuccessMessage("個人資料已更新！");
+                          setIsEditingProfile(false);
+                        }}
+                        onCancel={() => setIsEditingProfile(false)}
+                      />
                     </div>
-                  </form>
+                  ) : (
+                    <div className="space-y-6">
+                      {renderAlerts()}
+                      
+                      {/* 個人資料預覽 */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* 顯示名稱 */}
+                        <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                          <label className="block text-sm font-medium text-slate-400 mb-2">顯示名稱</label>
+                          <p className="text-white text-lg">{user?.profile?.display_name || "未設定"}</p>
+                        </div>
+
+                        {/* Email */}
+                        <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                          <label className="block text-sm font-medium text-slate-400 mb-2">電子郵件</label>
+                          <p className="text-white text-lg">{user?.email}</p>
+                        </div>
+
+                        {/* 個人簡介 */}
+                        <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50 md:col-span-2">
+                          <label className="block text-sm font-medium text-slate-400 mb-2">個人簡介</label>
+                          <p className="text-white text-base whitespace-pre-wrap">
+                            {user?.profile?.bio || "尚未填寫個人簡介"}
+                          </p>
+                        </div>
+
+                        {/* 喜愛的類型 */}
+                        <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50 md:col-span-2">
+                          <label className="block text-sm font-medium text-slate-400 mb-3">喜愛的電影類型</label>
+                          {user?.profile?.favorite_genres && user.profile.favorite_genres.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {user.profile.favorite_genres.map((genre, index) => (
+                                <span
+                                  key={index}
+                                  className="px-3 py-1.5 bg-amber-500/20 text-amber-400 rounded-lg text-sm border border-amber-500/30"
+                                >
+                                  {genre}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-slate-500 text-sm">尚未選擇喜愛的電影類型</p>
+                          )}
+                        </div>
+
+                        {/* 隱私設定 */}
+                        <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                          <label className="block text-sm font-medium text-slate-400 mb-2">隱私等級</label>
+                          <p className="text-white text-lg capitalize">
+                            {user?.profile?.privacy_level === "public" && "公開"}
+                            {user?.profile?.privacy_level === "friends" && "僅好友"}
+                            {user?.profile?.privacy_level === "private" && "私人"}
+                            {!user?.profile?.privacy_level && "未設定"}
+                          </p>
+                        </div>
+
+                        {/* 成人內容偏好 */}
+                        <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                          <label className="block text-sm font-medium text-slate-400 mb-2">成人內容</label>
+                          <p className="text-white text-lg">
+                            {user?.profile?.adult_content_opt_in ? "已啟用" : "已停用"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

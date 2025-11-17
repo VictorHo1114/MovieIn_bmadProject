@@ -115,13 +115,17 @@ export default function NavBar() {
     window.addEventListener('conversationsUpdated', handleConversationsUpdated as EventListener);
 
     // Poll unread count periodically so badge updates when other users send messages.
+    // Use longer interval to reduce server load (15s instead of 5s)
     if (pollRef.current) {
       window.clearInterval(pollRef.current);
       pollRef.current = null;
     }
     pollRef.current = window.setInterval(() => {
-      loadMessagesCount();
-    }, 5000);
+      // Only poll when page is visible to reduce unnecessary requests
+      if (document.visibilityState === 'visible') {
+        loadMessagesCount();
+      }
+    }, 15000);
 
     const handleWindowFocus = () => loadMessagesCount();
     const handleVisibility = () => {
@@ -264,16 +268,16 @@ export default function NavBar() {
                 {/* 使用者名稱 */}
                 <span
                   className="hidden lg:inline text-gray-400 text-lg truncate max-w-[140px] inline-block align-middle"
-                  title={user?.profile?.display_name || ''}
+                  title={user?.profile?.display_name || user?.email || ''}
                 >
-                  {user ? user.profile?.display_name : '載入中...'}
+                  {user?.profile?.display_name || user?.email || '載入中...'}
                 </span>
 
                 {/* 頭像 */}
                 <img
                   className="h-8 w-8 md:h-10 md:w-10 rounded-full object-cover ring-2 ring-gray-700 hover:ring-purple-500 transition-all"
                   src={user?.profile?.avatar_url || '/img/default-avatar.jpg'}
-                  alt={user?.profile?.display_name || '使用者'}
+                  alt={user?.profile?.display_name || user?.email || '使用者'}
                 />
               </button>
 

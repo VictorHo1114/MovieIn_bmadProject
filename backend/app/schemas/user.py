@@ -1,5 +1,7 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from typing import Any
 from uuid import UUID
+from datetime import datetime
 
 # Pydantic (Schemas) vs SQLAlchemy (Models)
 # Schemas 定義 API 的資料形狀 (Data Shape)
@@ -11,15 +13,16 @@ class ProfileBase(BaseModel):
     """
     用於「讀取」的 Profile 基礎
     """
+    model_config = ConfigDict(from_attributes=True)
+    
     display_name: str | None = None
     avatar_url: str | None = None
-    bio: str | None = None
-    favorite_genres: list[str] | None = None
-    locale: str | None = None
-    adult_content_opt_in: bool = False
-
-    class Config:
-        from_attributes = True # 關鍵！允許 Pydantic 從 SQLAlchemy model 讀取資料
+    bio: str | None = None  # 個人簡介
+    favorite_genres: list[str] | None = None  # 喜愛的類型 (可為 null)
+    locale: str | None = None  # 語言
+    adult_content_opt_in: bool = False  # 成人內容偏好
+    privacy_level: str | None = "public"  # 隱私設定
+    last_active: datetime | None = None  # 最後活動時間（改為 datetime 類型，Pydantic 會自動序列化）
 
 
 # --- 請求 Schemas (用於 API 傳入) ---
@@ -88,13 +91,15 @@ class TokenData(BaseModel):
 class ProfileUpdate(BaseModel):
     """
     用於 PATCH /profile/me (更新 Profile) 的請求 Body
+    支援交友功能所需的所有欄位
     """
-    display_name: str | None = None
-    avatar_url: str | None = None
-    bio: str | None = None
-    favorite_genres: list[str] | None = None
-    locale: str | None = None
-    adult_content_opt_in: bool | None = None
+    display_name: str | None = None  # 顯示名稱
+    avatar_url: str | None = None  # 頭像 URL
+    bio: str | None = None  # 個人簡介
+    favorite_genres: list[str] | None = None  # 喜愛的類型
+    locale: str | None = None  # 語言
+    adult_content_opt_in: bool | None = None  # 成人內容偏好
+    privacy_level: str | None = None  # 隱私設定: public/friends/private
 
     class Config:
         from_attributes = True

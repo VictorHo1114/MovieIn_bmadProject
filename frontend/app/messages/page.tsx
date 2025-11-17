@@ -70,6 +70,7 @@ function MessagesContent() {
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
   const knownIdsRef = useRef<Set<string>>(new Set());
   const pausePollRef = useRef<boolean>(false);
+  const isLoadingRef = useRef<boolean>(false); // prevent concurrent requests
 
   useEffect(() => {
     if (!userId) return;
@@ -129,15 +130,18 @@ function MessagesContent() {
       }
     })();
 
-    // start polling for new messages every 3s
+    // start polling for new messages every 5s (reduced from 3s to reduce server load)
     if (pollingRef.current) {
       window.clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
     pollingRef.current = window.setInterval(async () => {
       try {
-        if (pausePollRef.current) return;
+        // Skip polling if paused, page not visible, or already loading
+        if (pausePollRef.current || document.visibilityState !== 'visible' || isLoadingRef.current) return;
+        isLoadingRef.current = true;
         const js = await Api.messages.getConversation(userId as string).catch(() => null);
+        isLoadingRef.current = false;
         if (!js) return;
         const jsAny: any = js;
         const items: any[] = Array.isArray(jsAny) ? jsAny : (jsAny.items || jsAny || []);
@@ -222,8 +226,9 @@ function MessagesContent() {
         });
       } catch (e) {
         // ignore polling errors
+        isLoadingRef.current = false;
       }
-    }, 3000);
+    }, 5000);
 
     return () => {
       if (pollingRef.current) {
@@ -371,26 +376,33 @@ function MessagesContent() {
     // initial load
     loadConversations();
 
-    // refresh when other parts of app dispatch updates
+    // refresh when other parts of app dispatch updates (but debounce to avoid excessive calls)
+    let debounceTimer: number | null = null;
     const handleConvUpdated = (ev: Event) => {
       try {
-        const ce = ev as CustomEvent<any>;
-        // if detail contains info, just reload server-side to ensure consistency
-        loadConversations();
+        // Debounce: only reload after 500ms of no events to avoid multiple rapid reloads
+        if (debounceTimer) window.clearTimeout(debounceTimer);
+        debounceTimer = window.setTimeout(() => {
+          loadConversations();
+          debounceTimer = null;
+        }, 500);
       } catch (e) {
         loadConversations();
       }
     };
     window.addEventListener('conversationsUpdated', handleConvUpdated as EventListener);
 
-    // polling fallback to keep list fresh
+    // polling fallback to keep list fresh (10s interval to reduce server load)
     if (convPollRef.current) {
       window.clearInterval(convPollRef.current);
       convPollRef.current = null;
     }
     convPollRef.current = window.setInterval(() => {
-      loadConversations();
-    }, 5000);
+      // Only poll when page is visible
+      if (document.visibilityState === 'visible') {
+        loadConversations();
+      }
+    }, 10000);
 
     return () => {
       window.removeEventListener('conversationsUpdated', handleConvUpdated as EventListener);
