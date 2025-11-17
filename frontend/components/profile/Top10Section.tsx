@@ -55,16 +55,14 @@ function SortableTop10Item({ item, index, onRemove }: SortableTop10ItemProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-slate-800/40 backdrop-blur-sm border rounded-xl p-4 mb-3 transition-all duration-300 hover:shadow-xl ${
-        isDragging
-          ? "border-amber-500 shadow-2xl shadow-amber-500/20 scale-105"
-          : "border-slate-700/50 hover:border-slate-600"
+      className={`bg-white border-2 rounded-lg p-4 mb-3 ${
+        isDragging ? "border-purple-500 shadow-xl" : "border-gray-200"
       }`}
     >
       <div className="flex items-center gap-4">
         {/* 排名徽章 */}
         <div className="flex-shrink-0">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center font-bold text-white text-xl shadow-lg shadow-amber-500/30">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center font-bold text-white text-lg shadow-lg">
             #{index + 1}
           </div>
         </div>
@@ -74,17 +72,17 @@ function SortableTop10Item({ item, index, onRemove }: SortableTop10ItemProps) {
           <img
             src={item.movie.poster_url || "/placeholder-movie.png"}
             alt={item.movie.title}
-            className="w-16 h-24 object-cover rounded-lg shadow-lg border border-slate-700/50"
+            className="w-16 h-24 object-cover rounded shadow-md"
           />
         </div>
 
         {/* 電影資訊 */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-lg text-white truncate">{item.movie.title}</h3>
-          {item.movie.release_year && <p className="text-sm text-slate-400">{item.movie.release_year}</p>}
+          <h3 className="font-bold text-lg text-gray-900 truncate">{item.movie.title}</h3>
+          {item.movie.release_year && <p className="text-sm text-gray-500">{item.movie.release_year}</p>}
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-amber-400">★</span>
-            <span className="text-sm font-medium text-slate-300">{item.movie.vote_average.toFixed(1)}</span>
+            <span className="text-yellow-500">★</span>
+            <span className="text-sm font-medium text-gray-700">{item.movie.vote_average.toFixed(1)}</span>
           </div>
         </div>
 
@@ -92,9 +90,9 @@ function SortableTop10Item({ item, index, onRemove }: SortableTop10ItemProps) {
         <div
           {...attributes}
           {...listeners}
-          className="flex-shrink-0 cursor-grab active:cursor-grabbing p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing p-2 hover:bg-gray-100 rounded transition-colors"
         >
-          <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
           </svg>
         </div>
@@ -102,7 +100,7 @@ function SortableTop10Item({ item, index, onRemove }: SortableTop10ItemProps) {
         {/* 刪除按鈕 */}
         <button
           onClick={onRemove}
-          className="flex-shrink-0 p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/30"
+          className="flex-shrink-0 p-2 text-red-500 hover:bg-red-50 rounded transition-colors"
           title="從 Top 10 移除"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,7 +128,9 @@ export function Top10Section() {
   useEffect(() => {
     fetchTop10()
 
+    // 訂閱 store 變化，使用本地過濾而非重新載入
     const unsubscribe = movieListStore.subscribe(() => {
+      // 只更新本地狀態，過濾掉已移除的電影
       setTop10List((prevList) => prevList.filter((item) => movieListStore.isInTop10(item.movie.id)))
     })
 
@@ -141,9 +141,11 @@ export function Top10Section() {
     try {
       setIsLoading(true)
       const data = await Api.top10.getAll()
+      // 按 rank 排序
       const sorted = data.items.sort((a, b) => a.rank - b.rank)
       setTop10List(sorted)
 
+      // 🎯 優化：預先標記這些電影為存在於 DB
       const tmdbIds = data.items.map((item) => item.movie.id)
       movieExistsCache.markAsExists(tmdbIds)
 
@@ -168,8 +170,10 @@ export function Top10Section() {
 
     const newList = arrayMove(top10List, oldIndex, newIndex)
 
+    // 更新本地狀態（樂觀更新）
     setTop10List(newList)
 
+    // 儲存到後端
     try {
       setIsSaving(true)
       const reorderData = newList.map((item: Top10Item, index: number) => ({
@@ -180,6 +184,7 @@ export function Top10Section() {
     } catch (err: any) {
       console.error("Failed to reorder top10:", err)
       alert("排序儲存失敗，請重試")
+      // 恢復原始順序
       fetchTop10()
     } finally {
       setIsSaving(false)
@@ -206,9 +211,9 @@ export function Top10Section() {
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-          className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full"
+          className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full"
         />
-        <p className="text-slate-300 text-lg mt-4">載入中...</p>
+        <p className="text-gray-600 text-lg mt-4">載入中...</p>
       </div>
     )
   }
@@ -216,10 +221,10 @@ export function Top10Section() {
   if (error) {
     return (
       <div className="text-center py-20">
-        <p className="text-red-400 mb-4">{error}</p>
+        <p className="text-red-600 mb-4">{error}</p>
         <button
           onClick={fetchTop10}
-          className="px-6 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/20"
+          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           重試
         </button>
@@ -230,9 +235,9 @@ export function Top10Section() {
   if (top10List.length === 0) {
     return (
       <div className="text-center py-20">
-        <div className="text-6xl mb-4 opacity-20">🏆</div>
-        <p className="text-xl text-slate-300 mb-2">你的 Top 10 清單是空的</p>
-        <p className="text-sm text-slate-500">點擊電影卡片的「加入 Top 10 List」按鈕來新增電影（最多 10 部）</p>
+        <div className="text-6xl mb-4 opacity-30">🏆</div>
+        <p className="text-xl text-gray-600 mb-2">你的 Top 10 清單是空的</p>
+        <p className="text-sm text-gray-400">點擊電影卡片的「加入 Top 10 List」按鈕來新增電影（最多 10 部）</p>
       </div>
     )
   }
@@ -241,17 +246,17 @@ export function Top10Section() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-bold text-white">
-            我的 Top 10 <span className="text-amber-400">({top10List.length}/10)</span>
-          </h3>
-          <p className="text-sm text-slate-400 mt-1">拖曳電影來調整排名順序</p>
+          <h2 className="text-2xl font-bold text-gray-900">
+            我的 Top 10 <span className="text-yellow-600">({top10List.length}/10)</span>
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">拖曳電影來調整排名順序</p>
         </div>
         {isSaving && (
-          <div className="flex items-center gap-2 text-sm text-slate-400">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-              className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full"
+              className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full"
             />
             儲存中...
           </div>
