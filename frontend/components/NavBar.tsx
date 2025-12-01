@@ -212,11 +212,11 @@ export default function NavBar() {
               <Link href="/recommendation" className={linkCls('/recommendation')}>
                 推薦
               </Link>
-              <Link href="/popular" className={linkCls('/popular')}>
-                熱門
-              </Link>
               <Link href="/social" className={linkCls('/social')}>
                 交友
+              </Link>
+              <Link href="/popular" className={linkCls('/popular')}>
+                熱門
               </Link>
               <Link href="/search" className={linkCls('/search')}>
                 搜尋
@@ -292,21 +292,6 @@ export default function NavBar() {
                     <FaUserCircle className="mr-2 h-5 w-5 text-gray-400" />
                     個人資料
                   </Link>
-                      <Link
-                        href="/social/friends"
-                        onClick={() => setIsProfileOpen(false)}
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        <FaUsers className="mr-2 h-5 w-5 text-gray-400" />
-                        <span className="flex items-center gap-2">
-                          好友
-                          {pendingCount > 0 && (
-                            <span className="ml-1 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-red-600 text-white">
-                              {pendingCount}
-                            </span>
-                          )}
-                        </span>
-                      </Link>
                   <Link
                     href="/profile?tab=watchlist"
                     onClick={() => setIsProfileOpen(false)}
@@ -396,6 +381,17 @@ export default function NavBar() {
                 推薦
               </Link>
               <Link 
+                href="/social" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`px-4 py-3 text-base transition-colors ${
+                  pathname === '/social' 
+                    ? 'bg-purple-600/20 text-white font-bold border-l-4 border-purple-400' 
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                交友
+              </Link>
+              <Link 
                 href="/popular" 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`px-4 py-3 text-base transition-colors ${
@@ -411,17 +407,6 @@ export default function NavBar() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`px-4 py-3 text-base transition-colors ${
                   pathname === '/social' 
-                    ? 'bg-purple-600/20 text-white font-bold border-l-4 border-purple-400' 
-                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                }`}
-              >
-                交友
-              </Link>
-              <Link 
-                href="/social/friends" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`px-4 py-3 text-base transition-colors ${
-                  pathname === '/social/friends' 
                     ? 'bg-purple-600/20 text-white font-bold border-l-4 border-purple-400' 
                     : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                 }`}

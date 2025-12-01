@@ -2,19 +2,26 @@
 """
 Phase 3.6: Embedding-First 推薦服務
 
-架構：
-1. Embedding Query Generation (智能查詢生成)
-2. Embedding Similarity Search (全庫語義搜索，300 候選)
-3. Tiered Feature Filtering (三層漸進式過濾，150 候選)
-4. 3-Quadrant Classification (Q1 完美 / Q2 語義發現 / Q4 候補)
-5. Dynamic Score Calculation (動態權重評分)
-6. Mixed Sorting (象限優先 + 分數排序)
-7. Smart Selection (Top N 保證 + 隨機池多樣性)
+完整推薦流程：
+1. Embedding Query Generation - 智能查詢生成（處理 3 種輸入情境）
+2. Embedding Similarity Search - 全庫語義搜索（返回 300 候選）
+3. Tiered Feature Filtering - 三層漸進式過濾（篩選至 150 候選）
+4. 3-Quadrant Classification - 三象限分類（Q1/Q2/Q4）
+5. Dynamic Score Calculation - 動態權重評分
+6. Mixed Sorting - 象限優先 + 分數次要排序
+7. Smart Selection - Top 3 保證 + 隨機池多樣性
+
+核心特色：
+- 🎯 Embedding-First: 語義理解為主，特徵匹配為輔
+- 📊 三象限加權: 根據品質自適應調整權重
+- 🔮 Mood 關係分析: 支援 51 對情緒組合關係
+- 💰 成本優化: 預計算 Embedding，查詢成本 ~$0.00002
 
 參考文檔：
-- docs/phase36-decisions.md
-- docs/phase36-implementation-guide.md
-- app/services/phase36_config.py
+- docs/phase36-decisions.md (核心決策)
+- docs/phase36-implementation-guide.md (實現指南)
+- docs/PHASE36_PROGRESS.md (進度報告)
+- app/services/phase36_config.py (配置參數)
 """
 import os
 import random
@@ -22,14 +29,9 @@ from typing import List, Dict, Any, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-# ============================================
-# Phase 3.6: Embedding-First 推薦系統
-# 配置檔案: phase36_config.py
-# ============================================
-
 TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 
-# 英文类型到简体中文的映射（匹配数据库中的 genres）
+# 類型映射：英文 → 簡體中文（匹配資料庫 genres 欄位）
 GENRE_EN_TO_ZH = {
     "Action": "动作",
     "Adventure": "冒险",
@@ -51,14 +53,6 @@ GENRE_EN_TO_ZH = {
     "Western": "西部"
 }
 
-# ============================================
-# 基礎工具函數
-# ============================================ 
-# 新系統優勢：
-# 1. 精確匹配：直接從 DB 提取 keywords，不需要中英映射
-# 2. Mood 映射：MOOD_LABEL_TO_DB_TAGS 提供精準的 mood → tags/keywords 映射
-# 3. 規則推斷：自動推斷年份、語言等參數
-# ============================================
 
 # ============================================================================
 # Phase 3.6: 核心工具函數
@@ -71,14 +65,23 @@ def calculate_match_ratio(
     genres: List[str]
 ) -> float:
     """
-    計算電影符合用戶要求的比例（0.0-1.0）
+    計算電影與用戶需求的匹配比例
     
-    Match Ratio = (matched_features / total_required_features)
+    Match Ratio = matched_features / total_required_features
     
-    例子：
-    - 用戶要求: 5 個 moods, 3 個 genres → total = 8
-    - 電影符合: 4 個 moods, 2 個 genres → matched = 6
-    - Match Ratio = 6/8 = 0.75 (75%)
+    Example:
+        用戶要求: 5 moods + 3 genres = 8 features
+        電影符合: 4 moods + 2 genres = 6 features
+        Match Ratio = 6/8 = 0.75 (75%)
+    
+    Args:
+        movie: 電影資料（包含 keywords, mood_tags, genres）
+        keywords: 用戶要求的關鍵詞
+        mood_tags: 用戶要求的情緒標籤
+        genres: 用戶要求的類型
+    
+    Returns:
+        float: 匹配比例 (0.0-1.0)
     """
     total_required = 0
     matched = 0
@@ -129,58 +132,67 @@ async def tiered_feature_filtering(
     randomness: float = 0.3
 ) -> List[Dict]:
     """
-    Phase 3.6: Tiered Feature Filtering
+    Phase 3.6: 三層漸進式特徵過濾（輔助引擎）
     
-    🔄 角色轉變：從候選生成 → 候選過濾
+    角色定位：
+        - 輸入: Embedding 搜索結果（300 候選）+ 用戶特徵
+        - 輸出: 過濾後的候選（150 候選）
+        - 功能: 驗證語義候選是否符合用戶明確要求
     
-    Phase 2/3.5 (舊角色):
-        - Input: 用戶特徵（keywords, moods, genres）
-        - Output: 從 DB 生成候選電影
-        - 引擎: SQL Feature Matching (Primary)
+    過濾策略：
+        Tier 1 (嚴格): Match Ratio ≥ 80% - 高度符合
+        Tier 2 (平衡): Match Ratio ≥ 50% - 中度符合
+        Tier 3 (寬鬆): Match Ratio < 50%  - 保底候選
     
-    Phase 3.6 (新角色):
-        - Input: Embedding 搜索結果（300 candidates）+ 用戶特徵
-        - Output: 過濾後的候選電影（150 candidates）
-        - 引擎: Feature Filtering (Secondary)
-    
-    📊 過濾策略（三層漸進）:
-        - Tier 1 (嚴格): Match Ratio >= 80%
-        - Tier 2 (平衡): Match Ratio >= 50%
-        - Tier 3 (寬鬆): Match Ratio >= 0% (保底)
-    
-    🎯 過濾條件:
-        - Hard Filters: exclude_genres, year_range, min_rating（強制過濾）
-        - Soft Filters: keywords, mood_tags, genres（計算 match_ratio）
+    過濾條件：
+        Hard Filters（硬性過濾，必須符合）:
+            - exclude_genres: 排除的類型
+            - year_range: 年份範圍
+            - min_rating: 最低評分
+        
+        Soft Filters（軟性過濾，計算 match_ratio）:
+            - keywords: 關鍵詞匹配
+            - mood_tags: 情緒標籤匹配
+            - genres: 類型匹配
     
     Args:
-        embedding_candidates: Embedding 搜索結果（300 部，已有 embedding_score）
-        keywords: 用戶選擇的 keywords
-        mood_tags: 用戶選擇的 mood tags
-        genres: 用戶選擇的 genres
-        exclude_genres: 排除的類型
-        year_range: 年份範圍
-        year_ranges: 多個年份範圍
-        min_rating: 最低評分
+        embedding_candidates: Embedding 搜索的 300 候選（含 embedding_score）
+        keywords: 關鍵詞列表
+        mood_tags: 情緒標籤列表
+        genres: 類型列表
+        exclude_genres: 排除類型
+        year_range: 單一年份範圍 (min, max)
+        year_ranges: 多個年份範圍 [[1990, 1999], [2000, 2009]]
+        min_rating: 最低評分閾值
         target_count: 目標返回數量（預設 150）
-        randomness: 隨機性參數
+        randomness: 隨機性參數（保留，未使用）
     
     Returns:
-        List[Dict]: 過濾後的候選電影，包含：
-            - 原有的 embedding_score
-            - 新增的 match_ratio, feature_score
+        List[Dict]: 過濾後的候選，每部包含：
+            - embedding_score: 保留自 Embedding 搜索
+            - match_ratio: 新增，特徵匹配率 (0.0-1.0)
+            - match_count: 新增，符合的特徵數量
+            - total_features: 新增，總特徵數量
     
     Example:
-        >>> embedding_results = await embedding_similarity_search(...)  # 300 candidates
+        >>> candidates = await embedding_similarity_search(query, top_k=300)
         >>> filtered = await tiered_feature_filtering(
-        ...     embedding_candidates=embedding_results,
-        ...     keywords=["love", "family"],
-        ...     mood_tags=["heartwarming", "emotional"],
+        ...     embedding_candidates=candidates,
+        ...     keywords=["love"],
+        ...     mood_tags=["heartwarming"],
         ...     genres=["Drama"],
         ...     target_count=150
         ... )
-        >>> len(filtered)  # 150
-        >>> filtered[0]["match_ratio"]  # 0.85
-        >>> filtered[0]["embedding_score"]  # 0.82 (preserved)
+        >>> len(filtered)
+        150
+        >>> filtered[0]
+        {
+            "title": "風雲人物",
+            "embedding_score": 0.482,
+            "match_ratio": 0.67,
+            "match_count": 2,
+            "total_features": 3
+        }
     """
     print(f"\n🔧 [Phase 3.6 Feature Filtering] 過濾 Embedding 候選")
     print(f"   - Input: {len(embedding_candidates)} candidates (from Embedding Search)")
@@ -313,7 +325,17 @@ async def tiered_feature_filtering(
 
 
 def _check_year_in_range(release_date, min_year: int, max_year: int) -> bool:
-    """檢查 release_date 是否在年份範圍內"""
+    """
+    檢查電影上映年份是否在指定範圍內
+    
+    Args:
+        release_date: 上映日期（datetime.date 或 str 格式 "YYYY-MM-DD"）
+        min_year: 最小年份
+        max_year: 最大年份
+    
+    Returns:
+        bool: 是否在範圍內
+    """
     if not release_date:
         return False
     
@@ -332,7 +354,7 @@ def _check_year_in_range(release_date, min_year: int, max_year: int) -> bool:
 
 
 # ============================================================================
-# Phase 3.6: 三象限分類與評分
+# Phase 3.6: 三象限分類與動態加權
 # ============================================================================
 
 def classify_to_3quadrant(
@@ -341,40 +363,49 @@ def classify_to_3quadrant(
     config: Dict = None
 ) -> str:
     """
-    Phase 3.6: 將電影分類到三個象限
+    三象限分類邏輯（Phase 3.6）
     
-    與 Phase 3.5 的差異：
-    - Phase 3.5: 4 quadrants (Q1/Q2/Q3/Q4)
-    - Phase 3.6: 3 quadrants (Q1/Q2/Q4) - 合併 Q2 和 Q3
+    象限定義：
+        Q1 (Perfect Match): 高語義 (≥0.60) + 高匹配 (≥0.40)
+            → 語義與特徵雙高，最佳推薦
+        
+        Q2 (Semantic Discovery): 高語義 (≥0.60) + 低匹配 (<0.40)
+            → 語義相關但特徵不完全符合，發現型推薦
+        
+        Q4 (Fallback): 低語義 (<0.60)
+            → 語義相似度不足，保底候選
     
-    三象限定義：
-    - Q1 (Perfect Match): High Embedding (>=0.60) AND High Match (>=0.40)
-    - Q2 (Semantic Discovery): High Embedding (>=0.60) AND Low Match (<0.40)
-    - Q4 (Fallback): Low Embedding (<0.60) - 不論 Match Ratio
+    閾值設定：
+        - high_embedding: 0.60 (Phase 3.6 提高標準)
+        - high_match: 0.40 (Phase 3.6 降低要求)
     
     Args:
-        movie: 電影資料（必須包含 match_ratio）
-        embedding_score: Embedding 相似度分數 (0-1)
-        config: Phase 3.6 配置參數
+        movie: 電影資料，必須包含 match_ratio
+        embedding_score: Embedding 相似度 (0.0-1.0)
+        config: 自定義配置（可選）
     
     Returns:
-        quadrant: 'q1_perfect_match' | 'q2_semantic_discovery' | 'q4_fallback'
+        str: 象限標籤
+            - "q1_perfect_match"
+            - "q2_semantic_discovery"
+            - "q4_fallback"
     
     Example:
         >>> movie = {"match_ratio": 0.75}
         >>> classify_to_3quadrant(movie, embedding_score=0.65)
-        'q1_perfect_match'  # High E (0.65>=0.60) AND High M (0.75>=0.40)
+        'q1_perfect_match'
         
-        >>> classify_to_3quadrant(movie, embedding_score=0.65)
-        'q2_semantic_discovery'  # High E (0.65>=0.60) AND Low M (0.30<0.40)
+        >>> movie = {"match_ratio": 0.30}
+        >>> classify_to_3quadrant(movie, embedding_score=0.70)
+        'q2_semantic_discovery'
         
         >>> classify_to_3quadrant(movie, embedding_score=0.50)
-        'q4_fallback'  # Low E (0.50<0.60)
+        'q4_fallback'
     """
-    # Phase 3.6 預設閾值（與 Phase 3.5 不同）
+    # Phase 3.6 預設閾值
     default_thresholds = {
-        "high_embedding": 0.60,  # ↑ from 0.45 (Phase 3.5)
-        "high_match": 0.40       # ↓ from 0.50 (Phase 3.5)
+        "high_embedding": 0.60,  # 提高語義閾值
+        "high_match": 0.40       # 降低匹配閾值
     }
     
     cfg = config or {}
@@ -402,50 +433,57 @@ def calculate_3quadrant_score(
     config: Dict = None
 ) -> float:
     """
-    Phase 3.6: 根據三象限計算最終分數（動態權重）
+    根據象限動態計算最終分數（Phase 3.6）
     
-    與 Phase 3.5 的差異：
-    - Phase 3.5: feature_score 為主（40-50%）
-    - Phase 3.6: embedding_score 為主（30-70%）
+    權重策略：
+        Q1 (Perfect Match): 平衡策略
+            - Embedding: 50% (主導)
+            - Match Ratio: 20% (輔助)
+            - Feature: 30% (保留，當前未使用)
+        
+        Q2 (Semantic Discovery): Embedding 優先策略
+            - Embedding: 70% (主導)
+            - Match Ratio: 20% (輔助)
+            - Feature: 10% (最小)
+        
+        Q4 (Fallback): Feature 優先策略
+            - Embedding: 30% (降低)
+            - Match Ratio: 30% (提高)
+            - Feature: 40% (保留，當前未使用)
     
-    三象限權重配置：
-    - Q1 (Perfect Match): E:50%, F:30%, M:20% (平衡)
-    - Q2 (Semantic Discovery): E:70%, F:10%, M:20% (Embedding 優先)
-    - Q4 (Fallback): E:30%, F:40%, M:30% (Feature 優先)
+    評分公式：
+        final_score = embedding_score × 100 × W_e + match_ratio × 100 × W_m
+        (feature_score 權重保留但當前設為 0)
     
     Args:
-        movie: 電影資料（包含 match_ratio）
-        embedding_score: Embedding 相似度分數 (0-1)
-        quadrant: 象限類型
-        config: Phase 3.6 配置參數
+        movie: 電影資料，包含 match_ratio
+        embedding_score: Embedding 相似度 (0.0-1.0)
+        quadrant: 象限標籤
+        config: 自定義配置（可選）
     
     Returns:
-        final_score: 最終融合分數 (0-100)
+        float: 最終分數 (0-100)
     
     Example:
         >>> movie = {"match_ratio": 0.75}
-        >>> calculate_3quadrant_score(
-        ...     movie, 
-        ...     embedding_score=0.65, 
-        ...     quadrant='q1_perfect_match'
-        ... )
-        65.0  # = 0.65*100*0.50 + 0.75*100*0.20 + 0*0.30
+        >>> calculate_3quadrant_score(movie, 0.65, 'q1_perfect_match')
+        47.5  # = 65*0.50 + 75*0.20 = 32.5 + 15.0
     """
-    # Phase 3.6 預設權重
+    # Phase 3.6 預設權重配置
     default_weights = {
         "q1_perfect_match": {
             "embedding": 0.50,
-            "feature": 0.30,
+            "feature": 0.30,      # 保留，當前未使用
             "match_ratio": 0.20
         },
         "q2_semantic_discovery": {
             "embedding": 0.70,
-            "feature": 0.10,
+            "feature": 0.10,      # 保留，當前未使用
             "match_ratio": 0.20
         },
         "q4_fallback": {
             "embedding": 0.30,
-            "feature": 0.40,
+            "feature": 0.40,      # 保留，當前未使用
             "match_ratio": 0.30
         }
     }
@@ -460,12 +498,10 @@ def calculate_3quadrant_score(
     
     match_ratio = movie.get('match_ratio', 0)
     
-    # Phase 3.6: 不使用 feature_score（已移除）
-    # 只使用 embedding_score 和 match_ratio
+    # 計算最終分數（當前僅使用 embedding 和 match_ratio）
     final_score = (
         embedding_score * 100 * weights.get('embedding', 0.50) +
         match_ratio * 100 * weights.get('match_ratio', 0.20)
-        # feature 權重保留但設為 0（未來可擴展）
     )
     
     return final_score
@@ -476,58 +512,55 @@ def sort_by_quadrant_and_embedding(
     config: Dict = None
 ) -> List[Dict]:
     """
-    Phase 3.6: 混合排序策略（象限優先 + Embedding 次要）
+    混合排序策略（Phase 3.6）
     
     排序規則：
-    1. Primary: Quadrant 優先級 (Q1 > Q2 > Q4)
-    2. Secondary: final_score 降序（同象限內）
-    
-    與 Phase 3.5 的差異：
-    - Phase 3.5: 可能使用 feature_score 或 match_ratio 排序
-    - Phase 3.6: 統一使用 final_score（已融合 embedding + match）
+        1. 象限優先（Primary Sort）
+           Q1 (完美匹配) > Q2 (語義發現) > Q4 (保底)
+        
+        2. 分數次要（Secondary Sort）
+           同象限內按 final_score 降序排列
     
     Args:
-        movies: 電影列表（必須包含 quadrant, final_score）
-        config: Phase 3.6 配置參數
+        movies: 電影列表，必須包含 quadrant 和 final_score
+        config: 自定義配置（可選，當前未使用）
     
     Returns:
-        sorted_movies: 排序後的電影列表
+        List[Dict]: 排序後的電影列表
     
     Example:
         >>> movies = [
-        ...     {"quadrant": "q4_fallback", "final_score": 50},
-        ...     {"quadrant": "q1_perfect_match", "final_score": 80},
-        ...     {"quadrant": "q2_semantic_discovery", "final_score": 70},
-        ...     {"quadrant": "q1_perfect_match", "final_score": 85}
+        ...     {"title": "A", "quadrant": "q4_fallback", "final_score": 50},
+        ...     {"title": "B", "quadrant": "q1_perfect_match", "final_score": 80},
+        ...     {"title": "C", "quadrant": "q2_semantic_discovery", "final_score": 70},
+        ...     {"title": "D", "quadrant": "q1_perfect_match", "final_score": 85}
         ... ]
         >>> sorted_movies = sort_by_quadrant_and_embedding(movies)
-        >>> [m["quadrant"] for m in sorted_movies]
-        ['q1_perfect_match', 'q1_perfect_match', 'q2_semantic_discovery', 'q4_fallback']
-        >>> [m["final_score"] for m in sorted_movies]
-        [85, 80, 70, 50]
+        >>> [m["title"] for m in sorted_movies]
+        ['D', 'B', 'C', 'A']  # Q1(85) > Q1(80) > Q2(70) > Q4(50)
     """
-    # 定義象限優先級
+    # 象限優先級映射
     quadrant_priority = {
         'q1_perfect_match': 1,
         'q2_semantic_discovery': 2,
         'q4_fallback': 3
     }
     
-    # 排序：先按象限優先級，再按 final_score 降序
+    # 兩級排序
     sorted_movies = sorted(
         movies,
         key=lambda m: (
             quadrant_priority.get(m.get('quadrant', 'q4_fallback'), 999),
-            -m.get('final_score', 0)  # 負號表示降序
+            -m.get('final_score', 0)
         )
     )
     
     return sorted_movies
 
 
-# ============================================
-# Phase 3.5: 四象限混合推薦
-# ============================================
+# ============================================================================
+# Phase 3.6: 主推薦函數
+# ============================================================================
 
 async def recommend_movies_embedding_first(
     natural_query: str = None,
@@ -543,75 +576,79 @@ async def recommend_movies_embedding_first(
     config: Dict = None
 ) -> List[Dict[str, Any]]:
     """
-    Phase 3.6: Embedding-First 推薦系統（完整流程）
+    Phase 3.6: Embedding-First 主推薦函數
     
-    架構流程：
-    1. Query Generation: 生成最佳 Embedding 查詢文本
-       - 情境 1 (NL only): 直接使用自然語言
-       - 情境 2 (Mood only): Relationship-aware Template
-       - 情境 3 (Both): NL 優先，衝突檢測
-    2. Embedding Search: 全庫語義搜索（300 candidates）
-       - 查詢 668 部電影的 embeddings
+    完整推薦流程（7 步驟）：
+    
+    1. Query Generation（查詢生成）
+       - 情境 1: 僅自然語言 → 直接使用
+       - 情境 2: 僅 Mood → 關係感知模板生成
+       - 情境 3: NL + Mood → 分離處理（NL 優先查詢，Mood 用於過濾）
+    
+    2. Embedding Search（全庫語義搜索）
+       - 搜索 668 部電影的預計算 embeddings
        - 計算 Cosine Similarity
-       - 返回 Top 300
-    3. Feature Filtering: 特徵過濾（150 candidates）
-       - Tier 1: Match Ratio >= 80%
-       - Tier 2: Match Ratio 50-79%
-       - Tier 3: Match Ratio < 50%
-    4. 3-Quadrant Classification: 三象限分類
-       - Q1: High Embedding (>=0.60) + High Match (>=0.40) → 完美匹配
-       - Q2: High Embedding (>=0.60) + Low Match (<0.40) → 語義發現
-       - Q4: Low Embedding (<0.60) → 候補
-    5. Score Calculation: 動態權重評分
-       - Q1: E:50% M:20% F:30%
-       - Q2: E:70% M:20% F:10%
-       - Q4: E:30% M:30% F:40%
-    6. Mixed Sorting: 象限優先 + 分數次要排序
-       - Primary: Q1 > Q2 > Q4
-       - Secondary: final_score desc
-    7. Return Top K: 返回前 10 部推薦
+       - 返回 Top 300 語義相關候選
     
-    與 Phase 3.5 的差異：
-    - Primary Engine: Feature Matching → Embedding Search
-    - Secondary Engine: Embedding Reranking → Feature Filtering
-    - Candidates: 150 (Feature) → 300 (Embedding) → 150 (Filtered)
-    - Quadrants: 4 (Q1/Q2/Q3/Q4) → 3 (Q1/Q2/Q4)
-    - Axes: Match Ratio (Y) × Embedding (X) → Embedding (Y) × Match Ratio (X)
-    - Thresholds: 0.50/0.45 → 0.40/0.60
+    3. Feature Filtering（三層漸進式過濾）
+       - Tier 1: Match Ratio ≥ 80% (嚴格)
+       - Tier 2: Match Ratio ≥ 50% (平衡)
+       - Tier 3: Match Ratio < 50% (寬鬆保底)
+       - 過濾至 150 候選
+    
+    4. 3-Quadrant Classification（三象限分類）
+       - Q1: 高語義(≥0.60) + 高匹配(≥0.40) → 完美匹配
+       - Q2: 高語義(≥0.60) + 低匹配(<0.40) → 語義發現
+       - Q4: 低語義(<0.60) → 保底候選
+    
+    5. Score Calculation（動態權重評分）
+       - Q1: Embedding 50%, Match 20%
+       - Q2: Embedding 70%, Match 20%
+       - Q4: Embedding 30%, Match 30%
+    
+    6. Mixed Sorting（混合排序）
+       - 象限優先: Q1 > Q2 > Q4
+       - 象限內: final_score 降序
+    
+    7. Smart Selection（智能選取）
+       - Top 3: 固定返回（保證質量）
+       - 4-10: 從排名 4-30 隨機選取（增加多樣性）
     
     Args:
-        natural_query: 自然語言查詢 (例: "難過的時候適合看什麼電影")
-        mood_labels: Mood 標籤列表 (英文，例: ["heartwarming", "uplifting"])
-        keywords: 關鍵詞列表 (英文)
-        genres: 類型列表 (簡體中文，例: ["劇情"])
-        exclude_genres: 排除類型列表
-        year_range: 單一年份範圍 (min, max)
+        natural_query: 自然語言查詢（例: "難過的時候適合看什麼"）
+        mood_labels: Mood 標籤（英文，例: ["heartwarming", "uplifting"]）
+        keywords: 關鍵詞列表
+        genres: 類型列表（簡體中文，例: ["劇情"]）
+        exclude_genres: 排除類型
+        year_range: 年份範圍 (min, max)
         year_ranges: 多個年份範圍 [[1990, 1999], [2000, 2009]]
         min_rating: 最低評分
         db_session: 資料庫 Session
-        count: 返回數量 (預設 10)
-        config: 自定義配置 (可選，預設使用 phase36_config.PHASE36_CONFIG)
+        count: 返回數量（預設 10）
+        config: 自定義配置（可選，預設使用 PHASE36_CONFIG）
     
     Returns:
-        List[Dict]: 推薦電影列表，每部電影包含：
-        - tmdb_id: TMDB ID
-        - title: 電影名稱
-        - overview: 簡介
-        - embedding_score: Embedding 相似度 (0.0-1.0)
-        - match_ratio: Feature 匹配率 (0.0-1.0)
-        - final_score: 綜合評分
-        - quadrant: 象限 (q1_perfect_match | q2_semantic_discovery | q4_fallback)
-        - ... (其他電影資訊)
+        List[Dict]: 推薦電影列表，每部包含：
+            - id: 電影 ID
+            - title: 電影名稱
+            - overview: 簡介
+            - poster_url: 海報圖片 URL
+            - vote_average: TMDB 評分
+            - release_year: 上映年份
+            - embedding_score: 語義相似度 (0.0-1.0)
+            - match_ratio: 特徵匹配率 (0.0-1.0)
+            - final_score: 綜合評分 (0-100)
+            - quadrant: 象限標籤
+            - genres: 類型列表
     
     Example:
         >>> results = await recommend_movies_embedding_first(
-        ...     natural_query="難過的時候適合看什麼電影",
-        ...     mood_labels=["heartwarming", "uplifting"],
+        ...     natural_query="難過的時候適合看什麼",
+        ...     mood_labels=["heartwarming"],
         ...     genres=["劇情"],
-        ...     db_session=session,
         ...     count=10
         ... )
-        >>> print(results[0])
+        >>> results[0]
         {
             "title": "風雲人物",
             "embedding_score": 0.482,
@@ -619,11 +656,6 @@ async def recommend_movies_embedding_first(
             "final_score": 34.45,
             "quadrant": "q4_fallback"
         }
-    
-    References:
-        - 決策文檔: docs/phase36-decisions.md
-        - 實現指南: docs/phase36-implementation-guide.md
-        - 配置檔: app/services/phase36_config.py
     """
     # 導入依賴
     from app.services.embedding_query_generator import generate_embedding_query
@@ -776,25 +808,25 @@ async def recommend_movies_embedding_first(
         print(f"   ✓ Sorted {len(sorted_movies)} movies")
     
     # ========================================================================
-    # Step 7: Return Top K (混合策略：Top 3 固定 + 隨機選取)
+    # Step 7: Smart Selection（智能選取策略）
     # ========================================================================
-    # 🎲 新策略：增加重複查詢時的多樣性
-    # - Top N: 固定返回最佳推薦（保證質量）
-    # - 其他: 從剩餘候選中隨機選取（增加驚喜感）
+    # 增加重複查詢時的多樣性：
+    # - Top 3: 固定返回最佳推薦（保證質量）
+    # - 4-10: 從排名 4-30 隨機選取（增加驚喜感，避免重複）
     
     if verbose:
         print(f"\n[Step 7/7] Smart Selection Strategy")
     
     import random
     
-    # 從配置獲取參數
+    # 智能選取參數
     guaranteed_top = cfg.get("candidate_counts", {}).get("guaranteed_top", 3)
     random_pool_size = cfg.get("candidate_counts", {}).get("random_pool_size", 30)
     
-    # 確保 Top N
+    # Top 3 固定返回
     top_guaranteed = sorted_movies[:guaranteed_top] if len(sorted_movies) >= guaranteed_top else sorted_movies
     
-    # 從排名 (N+1) - pool_size 中隨機選取
+    # 從排名 4-30 隨機選取
     remaining_pool = sorted_movies[guaranteed_top:min(random_pool_size, len(sorted_movies))]
     random_count = count - len(top_guaranteed)
     random_picks = random.sample(remaining_pool, min(random_count, len(remaining_pool))) if remaining_pool else []
@@ -806,12 +838,14 @@ async def recommend_movies_embedding_first(
         if random_picks:
             print(f"   ✓ Random {len(random_picks)} (from rank {guaranteed_top+1}-{random_pool_size}): {[m['title'][:25] for m in random_picks[:3]]}...")
     
-    # 格式化電影數據，確保前端所需欄位都存在
+    # ========================================================================
+    # 格式化返回數據（確保前端所需欄位完整）
+    # ========================================================================
     TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
     formatted_results = []
     
     for movie in final_recommendations:
-        # 處理 release_date → release_year
+        # 處理日期格式
         release_date = movie.get("release_date")
         release_year = None
         if release_date:

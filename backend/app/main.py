@@ -63,6 +63,8 @@ from app.routers.friends import router as friends_router
 app.include_router(friends_router)
 from app.routers.messages import router as messages_router
 app.include_router(messages_router)
+from app.routers.websocket import router as websocket_router
+app.include_router(websocket_router)
 
 
 @app.on_event("startup")

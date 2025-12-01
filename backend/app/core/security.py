@@ -49,6 +49,28 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 
+def decode_token(token: str) -> dict:
+    """
+    解碼 JWT Token 並回傳 payload
+    :param token: JWT token string
+    :return: payload dict (包含 sub, exp 等欄位)
+    :raises: HTTPException if token is invalid
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        raise credentials_exception
+    except Exception:
+        raise credentials_exception
+
+
 # --- 3. 驗證「通行證」的警衛 (FastAPI 依賴) ---
 
 def get_current_user(

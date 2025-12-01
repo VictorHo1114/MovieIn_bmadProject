@@ -147,6 +147,7 @@ def list_conversations(db: Session = Depends(get_db), current_user: User = Depen
 SELECT
     sub.user_id AS user_id,
     p.display_name AS display_name,
+    p.avatar_url AS avatar_url,
     sub.last_message AS last_message,
     sub.last_time AS last_time,
     COALESCE(sub.unread, 0) AS unread
