@@ -66,14 +66,19 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   useEffect(() => {
     if (!onMessage) return;
 
-    const handleNewMessage = (message: any) => {
+    const handleMessage = (message: any) => {
       onMessage(message);
     };
 
-    wsManager.on("new_message", handleNewMessage);
+    // 訂閱所有相關的訊息類型
+    wsManager.on("new_message", handleMessage);
+    wsManager.on("message_sent", handleMessage);
+    wsManager.on("error", handleMessage);
 
     return () => {
-      wsManager.off("new_message", handleNewMessage);
+      wsManager.off("new_message", handleMessage);
+      wsManager.off("message_sent", handleMessage);
+      wsManager.off("error", handleMessage);
     };
   }, [onMessage]);
 

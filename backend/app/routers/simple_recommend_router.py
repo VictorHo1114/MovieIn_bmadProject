@@ -159,3 +159,57 @@ async def get_system_info():
             "total_score_range": 125
         }
     }
+
+
+# ============================================================================
+# P0 優化：快取管理 API
+# ============================================================================
+
+@router.get("/cache/stats")
+async def get_cache_statistics():
+    """
+    獲取快取統計資訊（P0 監控）
+    
+    返回：
+    - memory_cache_size: 記憶體快取項目數
+    - redis_available: Redis 是否可用
+    - redis_hit_rate: Redis 命中率
+    """
+    from app.services.recommendation_cache import get_cache_stats
+    
+    try:
+        stats = get_cache_stats()
+        return {
+            "success": True,
+            "stats": stats,
+            "message": "快取統計資訊"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/cache/invalidate")
+async def invalidate_cache(pattern: str = "*"):
+    """
+    清除推薦快取（P0 管理工具）
+    
+    參數：
+    - pattern: 快取鍵模式（預設 "*" 清除全部）
+    
+    使用場景：
+    - 新電影加入資料庫
+    - 推薦演算法更新
+    - 手動清除過時快取
+    """
+    from app.services.recommendation_cache import invalidate_recommendation_cache
+    
+    try:
+        count = invalidate_recommendation_cache(pattern)
+        return {
+            "success": True,
+            "invalidated_count": count,
+            "pattern": pattern,
+            "message": f"已清除 {count} 個快取項目"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

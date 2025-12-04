@@ -2,20 +2,24 @@
 WebSocket 即時訊息系統
 提供雙向即時通訊，取代輪詢機制
 """
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from typing import Dict, Set
 import json
 import logging
 from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+import time
 
 from db.database import get_db
-from app.core.security import decode_token
+from app.core.security import SECRET_KEY, ALGORITHM
+from app.routers.messages import _existing_columns
+from app.core.cache import MessageCacheKeys
+from jose import JWTError, jwt
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/ws", tags=["WebSocket"])
+router = APIRouter(prefix="/ws", tags=["WebSocket"])
 
 
 class ConnectionManager:
@@ -98,7 +102,6 @@ manager = ConnectionManager()
 @router.websocket("/chat")
 async def websocket_chat_endpoint(
     websocket: WebSocket,
-    token: str = Query(..., description="JWT token for authentication"),
     db: Session = Depends(get_db)
 ):
     """
@@ -145,20 +148,41 @@ async def websocket_chat_endpoint(
     }
     """
     
+    # 先 accept WebSocket 連線
+    await websocket.accept()
+    
+    # 從 query string 手動讀取 token
+    token = websocket.query_params.get("token")
+    if not token:
+        logger.warning("No token provided in query string")
+        await websocket.close(code=1008, reason="Authentication required: missing token")
+        return
+    
     # 驗證 token
     try:
-        payload = decode_token(token)
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if not user_id:
-            await websocket.close(code=1008, reason="Invalid token")
+            logger.warning("Token missing 'sub' field")
+            await websocket.close(code=1008, reason="Invalid token: missing user ID")
             return
+    except JWTError as e:
+        logger.error(f"JWT decode failed: {e}")
+        await websocket.close(code=1008, reason="Authentication failed: invalid token")
+        return
     except Exception as e:
         logger.error(f"Token validation failed: {e}")
         await websocket.close(code=1008, reason="Authentication failed")
         return
     
-    # 建立連線
-    await manager.connect(user_id, websocket)
+    # Token 驗證成功，註冊到連線管理器（不要再次 accept）
+    if user_id not in manager.active_connections:
+        manager.active_connections[user_id] = set()
+    
+    manager.active_connections[user_id].add(websocket)
+    manager.connection_to_user[websocket] = user_id
+    
+    logger.info(f"User {user_id} connected via WebSocket")
     
     # 通知其他用戶此用戶上線
     await manager.broadcast({
@@ -202,13 +226,8 @@ async def websocket_chat_endpoint(
                 
                 # 儲存訊息到資料庫
                 try:
-                    # 檢查 messages 表的欄位
-                    cols_result = db.execute(text("""
-                        SELECT column_name 
-                        FROM information_schema.columns 
-                        WHERE table_name = 'messages'
-                    """))
-                    cols = {row[0] for row in cols_result.fetchall()}
+                    # 使用已快取的 schema 檢查函數，避免每次查詢 information_schema
+                    cols = _existing_columns(db)
                     
                     # 使用正確的欄位名稱插入
                     if "receiver_id" in cols:
@@ -224,29 +243,54 @@ async def websocket_chat_endpoint(
                             RETURNING id, sender_id, recipient_id, body, is_read, created_at
                         """)
                     
+                    # 執行插入並記錄時間以便監控延遲
+                    t0 = time.time()
                     result = db.execute(insert_query, {
                         "sender_id": user_id,
                         "receiver_id": recipient_id if "receiver_id" in cols else None,
                         "recipient_id": recipient_id,
                         "body": body
                     })
+                    t1 = time.time()
                     db.commit()
+                    t2 = time.time()
+                    logger.debug("websocket.post_message timings: execute=%.3fms commit=%.3fms total=%.3fms", (t1-t0)*1000, (t2-t1)*1000, (t2-t0)*1000)
                     
                     row = result.fetchone()
                     if row:
                         message_record = dict(row._mapping)
                         
+                        # 將所有需要序列化的欄位轉換為適當格式
+                        serialized_message = {
+                            'id': str(message_record['id']) if message_record.get('id') else None,  # ID 轉為字串避免 JS 精度問題
+                            'sender_id': str(message_record['sender_id']) if message_record.get('sender_id') else None,
+                            'recipient_id': str(message_record['recipient_id']) if message_record.get('recipient_id') else None,
+                            'body': message_record.get('body', ''),
+                            'is_read': message_record.get('is_read', False),
+                            'created_at': message_record['created_at'].isoformat() if message_record.get('created_at') else None
+                        }
+                        
+                        logger.debug(f"Serialized message: {serialized_message}")
+                        
                         # 發送給接收者
+                        logger.info(f"📤 Sending new_message to recipient {recipient_id}")
                         await manager.send_personal_message({
                             "type": "new_message",
-                            "data": message_record
+                            "data": serialized_message
                         }, recipient_id)
                         
                         # 確認發送給發送者
+                        logger.info(f"✅ Sending message_sent confirmation to sender {user_id}")
                         await websocket.send_json({
                             "type": "message_sent",
-                            "data": message_record
+                            "data": serialized_message
                         })
+                        logger.info(f"✅ message_sent sent successfully")
+                        
+                        # 清除雙方的訊息快取（未讀數、對話列表都會改變）
+                        MessageCacheKeys.invalidate_user_messages(user_id)
+                        MessageCacheKeys.invalidate_user_messages(recipient_id)
+                        logger.debug(f"[Cache INVALIDATE] users {user_id}, {recipient_id} after new message")
                         
                         logger.info(f"Message {message_record['id']} from {user_id} to {recipient_id}")
                     

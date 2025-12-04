@@ -9,6 +9,9 @@ from app.core.security import get_current_user
 from app.models import User
 import time
 
+# Redis 快取
+from app.core.cache import CacheService, MessageCacheKeys
+
 router = APIRouter(prefix="/api/v1/messages", tags=["messages"])
 
 logger = logging.getLogger(__name__)
@@ -134,6 +137,13 @@ def list_conversations(db: Session = Depends(get_db), current_user: User = Depen
     """Return recent conversations for the authenticated user.
     Each item: { user_id, display_name, last_message, last_time, unread }
     """
+    # 檢查快取
+    cache_key = MessageCacheKeys.conversations(str(current_user.user_id))
+    cached = CacheService.get(cache_key)
+    if cached is not None:
+        logger.debug(f"[Cache HIT] conversations for user {current_user.user_id}")
+        return {"items": cached}
+    
     cols = _existing_columns(db)
     has_receiver = "receiver_id" in cols
     has_content = "content" in cols
@@ -171,6 +181,11 @@ LIMIT 200
         res = db.execute(q, {"me": str(current_user.user_id)})
         rows = res.fetchall()
         items = [dict(r._mapping) for r in rows]
+        
+        # 寫入快取（TTL 120 秒）
+        CacheService.set(cache_key, items, ttl=120)
+        logger.debug(f"[Cache SET] conversations for user {current_user.user_id}")
+        
         return {"items": items}
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -178,6 +193,13 @@ LIMIT 200
 
 @router.get("/unread_count")
 def unread_count(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # 檢查快取
+    cache_key = MessageCacheKeys.unread_count(str(current_user.user_id))
+    cached = CacheService.get(cache_key)
+    if cached is not None:
+        logger.debug(f"[Cache HIT] unread_count for user {current_user.user_id}")
+        return {"count": cached}
+    
     try:
         cols = _existing_columns(db)
         has_receiver = "receiver_id" in cols
@@ -185,7 +207,13 @@ def unread_count(db: Session = Depends(get_db), current_user: User = Depends(get
         q = text(f"SELECT COUNT(*) AS count FROM messages WHERE {recipient_cond} AND is_read = false")
         res = db.execute(q, {"me": str(current_user.user_id)})
         row = res.fetchone()
-        return {"count": int(row[0]) if row and row[0] is not None else 0}
+        count = int(row[0]) if row and row[0] is not None else 0
+        
+        # 寫入快取（TTL 60 秒）
+        CacheService.set(cache_key, count, ttl=60)
+        logger.debug(f"[Cache SET] unread_count={count} for user {current_user.user_id}")
+        
+        return {"count": count}
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -219,6 +247,10 @@ def mark_conversation_read(payload: dict, db: Session = Depends(get_db), current
         res = db.execute(upd, params)
         rows = res.fetchall()
         db.commit()
+        
+        # 清除該用戶的快取（因為未讀數已改變）
+        MessageCacheKeys.invalidate_user_messages(str(current_user.user_id))
+        logger.debug(f"[Cache INVALIDATE] user {current_user.user_id} after mark_read")
 
         # return the number of rows marked plus the new unread count for the current user
         try:

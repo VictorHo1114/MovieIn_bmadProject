@@ -43,9 +43,10 @@ class WebSocketManager {
 
     try {
       // 將 http://localhost:8000 轉換為 ws://localhost:8000
-      const wsUrl = API_BASE.replace(/^http/, "ws") + `/api/v1/ws/chat?token=${encodeURIComponent(token)}`;
+      const wsUrl = API_BASE.replace(/^http/, "ws") + `/ws/chat?token=${encodeURIComponent(token)}`;
       
-      console.log("[WebSocket] Connecting to:", wsUrl);
+      // 安全日誌：不顯示完整 token
+      console.log("[WebSocket] Connecting to:", wsUrl.replace(/token=[^&]+/, "token=***"));
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
@@ -61,7 +62,10 @@ class WebSocketManager {
       this.ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          console.log("[WebSocket] Received:", message);
+          // 只在開發環境記錄訊息詳情
+          if (process.env.NODE_ENV === 'development') {
+            console.log("[WebSocket] Received:", message);
+          }
           
           // 處理連線確認訊息
           if (message.type === "connected") {

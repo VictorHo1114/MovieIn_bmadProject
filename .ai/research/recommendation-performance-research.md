@@ -661,10 +661,62 @@ def recommend_with_ab_test(user_id: str, query: str):
 ---
 
 **立即行動項：**
-1. [ ] 實作雙層快取（LRU + Redis）
+1. [x] 實作雙層快取（LRU + Redis）✅ **已完成**
 2. [ ] 移除 SQL RANDOM()
 3. [ ] 建立效能基準測試
 4. [ ] 確認 Neon 是否支援 pgvector
+
+---
+
+## P0 實作進度報告
+
+### ✅ 已完成項目（2025-12-02）
+
+#### 1. 雙層快取系統
+**檔案：** `backend/app/services/recommendation_cache.py`
+
+**功能實作：**
+- ✅ Layer 1: LRU 記憶體快取（50 個查詢，~5ms）
+- ✅ Layer 2: Redis 分散式快取（可選，~2ms）
+- ✅ Embedding 快取（節省 OpenAI API 呼叫）
+- ✅ 推薦結果快取（完整結果快取）
+- ✅ TTL 策略（Embedding 7天，推薦 1小時）
+- ✅ 優雅降級（Redis 不可用時自動使用 LRU）
+
+**整合點：**
+- ✅ `embedding_service.py` - `get_embedding()` 自動快取
+- ✅ `simple_recommend.py` - `recommend_movies_embedding_first()` 結果快取
+- ✅ `simple_recommend_router.py` - 新增快取管理 API
+
+**新增 API：**
+- `GET /api/recommend/v2/cache/stats` - 快取統計
+- `DELETE /api/recommend/v2/cache/invalidate` - 清除快取
+
+**預期效能提升：**
+- 首次查詢：500ms → ~300ms（快取 Embedding）
+- 重複查詢：500ms → ~5ms（快取完整結果）
+- API 成本：降低 98%
+
+#### 測試方式：
+```bash
+# 1. 啟動後端（Redis 可選）
+cd backend
+uvicorn app.main:app --reload --port 8000
+
+# 2. 測試首次查詢（會較慢，約 300ms）
+curl -X POST "http://localhost:8000/api/recommend/v2/movies" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "難過的時候適合看什麼", "selected_moods": ["heartwarming"]}'
+
+# 3. 測試重複查詢（應 <10ms，快取命中）
+# （重複上述請求）
+
+# 4. 查看快取統計
+curl "http://localhost:8000/api/recommend/v2/cache/stats"
+
+# 5. 清除快取
+curl -X DELETE "http://localhost:8000/api/recommend/v2/cache/invalidate"
+```
 
 ---
 

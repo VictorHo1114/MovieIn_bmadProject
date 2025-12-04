@@ -161,19 +161,34 @@ function MessagesContent() {
       if (message.type === "message_sent" && message.data) {
         const sentMsg = message.data;
         console.log("[Messages] 訊息發送確認:", sentMsg);
+        
+        // 重要：解除發送狀態
+        setSending(false);
+        
         setMessages((prev) => {
+          console.log("[Messages] 當前訊息列表:", prev.map(m => ({ id: m.id, body: m.body })));
+          console.log("[Messages] 尋找臨時訊息 body:", sentMsg.body);
+          
           // 先移除所有相同內容的臨時訊息（避免重複）
-          const withoutTemp = prev.filter((m) => 
-            !(String(m.id).startsWith('local-') && m.body === sentMsg.body)
-          );
+          const withoutTemp = prev.filter((m) => {
+            const isTemp = String(m.id).startsWith('local-') && m.body === sentMsg.body;
+            if (isTemp) {
+              console.log("[Messages] ✅ 找到並移除臨時訊息:", m.id);
+            }
+            return !isTemp;
+          });
+          
+          console.log("[Messages] 移除臨時訊息後:", withoutTemp.length, "則");
           
           // 檢查是否已存在正式訊息
           const exists = withoutTemp.some((m) => String(m.id) === String(sentMsg.id));
           if (exists) {
+            console.log("[Messages] 正式訊息已存在，跳過新增");
             return withoutTemp;
           }
           
           // 加入正式訊息
+          console.log("[Messages] ✅ 加入正式訊息:", sentMsg.id);
           const updated = [...withoutTemp, sentMsg];
           return updated.length > RECENT_LIMIT 
             ? updated.slice(updated.length - RECENT_LIMIT) 
@@ -199,10 +214,11 @@ function MessagesContent() {
   useEffect(() => {
     (async () => {
       try {
-        const storedToken = localStorage.getItem("token");
+        const storedToken = localStorage.getItem("authToken");
         if (storedToken) {
           setToken(storedToken);
-          console.log("[Messages] Token 已載入");
+          // 安全日誌：不顯示完整 token
+          console.log("[Messages] Token 已載入 (length:", storedToken.length, ")");
         }
         
         // 取得當前用戶 ID
@@ -498,7 +514,7 @@ function MessagesContent() {
         const success = wsSendMessage(userId, messageBody);
         
         if (success) {
-          setSending(false);
+          // 不在這裡 setSending(false)，等待 message_sent 確認
           // WebSocket 會處理訊息確認，替換臨時訊息
           return;
         }
