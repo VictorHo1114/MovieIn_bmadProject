@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+import os
 
 # --- 1. 導入所有 routers ---
 from app.routers import auth 
@@ -28,10 +29,14 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# --- 3. 加入 CORS 中間層 (保持不變) ---
+# --- 3. 加入 CORS 中間層 (生產環境安全設定) ---
+# 從環境變數讀取允許的來源，開發環境預設為 localhost
+allowed_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # 允許所有來源 (開發時)
+    allow_origins=allowed_origins,  # 使用環境變數控制
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,7 +69,7 @@ app.include_router(friends_router)
 from app.routers.messages import router as messages_router
 app.include_router(messages_router)
 from app.routers.websocket import router as websocket_router
-app.include_router(websocket_router)
+app.include_router(websocket_router, prefix=API_PREFIX)
 
 
 @app.on_event("startup")

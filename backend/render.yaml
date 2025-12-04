@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: moviein-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt --no-cache-dir
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: TMDB_API_KEY
+        sync: false
+      - key: YOUTUBE_API_KEY
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: MAIL_FROM_EMAIL
+        sync: false
+      - key: POSTER_BASE
+        value: https://image.tmdb.org/t/p/w500
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
