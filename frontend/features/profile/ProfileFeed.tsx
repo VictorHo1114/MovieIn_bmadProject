@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import type React from "react"
 
 import { useRouter, useSearchParams } from "next/navigation"
@@ -23,7 +23,7 @@ import { WatchlistSection } from "./WatchlistSection"
 import { Top10Section } from "./Top10Section"
 import { EnhancedProfileEditor } from "../../components/profile/EnhancedProfileEditor"
 
-export function ProfileFeed() {
+function ProfileFeedContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -578,5 +578,20 @@ export function ProfileFeed() {
 
       <LogoutModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onConfirm={performLogout} />
     </div>
+  )
+}
+
+export function ProfileFeed() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">載入中...</p>
+        </div>
+      </div>
+    }>
+      <ProfileFeedContent />
+    </Suspense>
   )
 }
