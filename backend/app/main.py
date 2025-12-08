@@ -34,10 +34,20 @@ app = FastAPI(
 allowed_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
 allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
 
+# 本地開發環境：允許所有來源（僅當沒有設定 CORS_ORIGINS 環境變數時）
+# 生產環境：使用環境變數中指定的來源
+if not os.getenv("CORS_ORIGINS"):
+    # 本地開發模式
+    allowed_origins = ["*"]
+    allow_credentials = False
+else:
+    # 生產環境模式
+    allow_credentials = True
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,  # 使用環境變數控制
-    allow_credentials=True,
+    allow_origins=allowed_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
