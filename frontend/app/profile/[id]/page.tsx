@@ -53,7 +53,7 @@ export default async function OtherProfilePage({ params }: { params: { id: strin
 
   try {
     // Try several candidate bases because backend may be mounted with or without /api or /api/v1
-    const candidatesRaw = [API_BASE, 'http://127.0.0.1:8000', 'http://localhost:8000', 'http://127.0.0.1:8000/api', 'http://127.0.0.1:8000/api/v1', 'http://localhost:8000/api', 'http://localhost:8000/api/v1'];
+    const candidatesRaw = [API_BASE];
     const candidates = Array.from(new Set(
       candidatesRaw.flatMap(b => [
         b,

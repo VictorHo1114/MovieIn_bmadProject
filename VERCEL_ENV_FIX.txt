@@ -1,0 +1,74 @@
+﻿========================================
+ Vercel 環境變數設置指引
+========================================
+
+問題: 前端正在嘗試連接 localhost:8000 而不是生產環境的 API
+
+前端當前連接: http://127.0.0.1:8000 
+應該連接: https://moviein-api.onrender.com 
+
+========================================
+修復步驟（3 分鐘完成）
+========================================
+
+步驟 1: 登入 Vercel Dashboard
+--------------------------------------
+1. 打開: https://vercel.com/dashboard
+2. 找到並點擊你的專案: movie-in-bmad-project03 或類似名稱
+
+步驟 2: 設置環境變數
+--------------------------------------
+1. 點擊頂部的 'Settings' 標籤
+2. 左側選單點擊 'Environment Variables'
+3. 點擊 'Add New' 按鈕
+
+添加第一個變數:
+- Name: NEXT_PUBLIC_API_BASE
+- Value: https://moviein-api.onrender.com/api/v1
+- Environment:  Production  Preview  Development
+- 點擊 'Save'
+
+添加第二個變數:
+- Name: NEXT_PUBLIC_USE_MOCKS  
+- Value: false
+- Environment:  Production  Preview  Development
+- 點擊 'Save'
+
+步驟 3: 重新部署
+--------------------------------------
+1. 回到 'Deployments' 標籤
+2. 找到最新的部署
+3. 點擊右側的 '...' 選單
+4. 選擇 'Redeploy'
+5. 確認 'Redeploy'
+
+步驟 4: 等待部署完成
+--------------------------------------
+1. 等待 1-2 分鐘
+2. 狀態變成 'Ready' 
+3. 點擊 'Visit' 查看網站
+
+========================================
+需要設置的環境變數（複製使用）
+========================================
+
+變數 1:
+Name: NEXT_PUBLIC_API_BASE
+Value: https://moviein-api.onrender.com/api/v1
+
+變數 2:
+Name: NEXT_PUBLIC_USE_MOCKS
+Value: false
+
+========================================
+驗證修復
+========================================
+
+重新部署完成後:
+1. 打開你的網站
+2. 按 F12 開啟開發者工具
+3. 切換到 Network 標籤
+4. 嘗試登入
+5. 確認請求是發送到 moviein-api.onrender.com 而不是 localhost
+
+========================================

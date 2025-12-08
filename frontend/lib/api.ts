@@ -1,6 +1,9 @@
 // 1. [修改！] ?�們�?次性�??��??��?要�? http ?��?
 import { getJSON, postJSON, patchJSON, deleteJSON, putJSON } from "./http";
 
+// 1.5 導入 API 配置
+import { API_BASE } from "./config";
+
 // 2. 導入你�??��???(保�?不�?)
 import type { HomeFeed, SearchResult } from "./types";
 
@@ -136,61 +139,61 @@ export const Api = {
   // --- [?��?！] Movies API (使用絕�?路�?繞�? /api/v1 base) ---
   movies: {
     getPopular: (page: number = 1, limit: number = 20) => 
-      getJSON<FrontendMovie[]>(`http://127.0.0.1:8000/api/movies/popular?page=${page}&limit=${limit}`),
+      getJSON<FrontendMovie[]>(`${API_BASE}/movies/popular?page=${page}&limit=${limit}`),
     
     getRandom: (limit: number = 20) => 
-      getJSON<FrontendMovie[]>(`http://127.0.0.1:8000/api/movies/random/recommendations?limit=${limit}`),
+      getJSON<FrontendMovie[]>(`${API_BASE}/movies/random/recommendations?limit=${limit}`),
     
     getById: (tmdbId: number) => 
-      getJSON<FrontendMovie>(`http://127.0.0.1:8000/api/movies/${tmdbId}`),
+      getJSON<FrontendMovie>(`${API_BASE}/movies/${tmdbId}`),
     
     checkExists: (tmdbId: number) => 
-      getJSON<{ exists: boolean; tmdb_id: number }>(`http://127.0.0.1:8000/api/movies/check/${tmdbId}`),
+      getJSON<{ exists: boolean; tmdb_id: number }>(`${API_BASE}/movies/check/${tmdbId}`),
   },
 
   // --- [?��?！] Watchlist API (使用絕�?路�?繞�? /api/v1 base) ---
   watchlist: {
     getAll: () => 
-      getJSON<{ items: WatchlistItem[]; total: number }>("http://127.0.0.1:8000/api/watchlist"),
+      getJSON<{ items: WatchlistItem[]; total: number }>(`${API_BASE}/watchlist`),
     
     add: (tmdbId: number, data?: { notes?: string; priority?: number }) => 
-      postJSON<WatchlistItem>(`http://127.0.0.1:8000/api/watchlist/${tmdbId}`, data || {}),
+      postJSON<WatchlistItem>(`${API_BASE}/watchlist/${tmdbId}`, data || {}),
     
     remove: (tmdbId: number) => 
-      deleteJSON(`http://127.0.0.1:8000/api/watchlist/${tmdbId}`),
+      deleteJSON(`${API_BASE}/watchlist/${tmdbId}`),
     
     update: (tmdbId: number, data: { notes?: string; is_watched?: boolean; priority?: number }) => 
-      patchJSON<WatchlistItem>(`http://127.0.0.1:8000/api/watchlist/${tmdbId}`, data),
+      patchJSON<WatchlistItem>(`${API_BASE}/watchlist/${tmdbId}`, data),
   },
 
   // --- [?��?！] Top10 API (使用絕�?路�?繞�? /api/v1 base) ---
   top10: {
     getAll: (category?: string) => {
       const url = category 
-        ? `http://127.0.0.1:8000/api/top10?category=${encodeURIComponent(category)}`
-        : "http://127.0.0.1:8000/api/top10";
+        ? `${API_BASE}/top10?category=${encodeURIComponent(category)}`
+        : `${API_BASE}/top10`;
       return getJSON<{ items: Top10Item[]; total: number }>(url);
     },
     
     add: (tmdbId: number, data?: { notes?: string; rating_by_user?: number; category?: string; rank?: number }) => 
-      postJSON<Top10Item>(`http://127.0.0.1:8000/api/top10/${tmdbId}`, data || {}),
+      postJSON<Top10Item>(`${API_BASE}/top10/${tmdbId}`, data || {}),
     
     remove: (tmdbId: number, category?: string) => {
       const url = category 
-        ? `http://127.0.0.1:8000/api/top10/${tmdbId}?category=${encodeURIComponent(category)}`
-        : `http://127.0.0.1:8000/api/top10/${tmdbId}`;
+        ? `${API_BASE}/top10/${tmdbId}?category=${encodeURIComponent(category)}`
+        : `${API_BASE}/top10/${tmdbId}`;
       return deleteJSON(url);
     },
     
     update: (tmdbId: number, data: { notes?: string; rating_by_user?: number; category?: string; rank?: number }, category?: string) => {
       const url = category 
-        ? `http://127.0.0.1:8000/api/top10/${tmdbId}?category=${encodeURIComponent(category)}`
-        : `http://127.0.0.1:8000/api/top10/${tmdbId}`;
+        ? `${API_BASE}/top10/${tmdbId}?category=${encodeURIComponent(category)}`
+        : `${API_BASE}/top10/${tmdbId}`;
       return patchJSON<Top10Item>(url, data);
     },
     
     reorder: (items: Array<{ id: string; rank: number }>) => 
-      putJSON<{ items: Top10Item[]; total: number }>("http://127.0.0.1:8000/api/top10/reorder", { items }),
+      putJSON<{ items: Top10Item[]; total: number }>(`${API_BASE}/top10/reorder`, { items }),
   },
 
   // --- (?��?�? 修改 Profile ---
@@ -241,12 +244,12 @@ export const Api = {
   // --- Quiz API ---
   quiz: {
     getToday: () =>
-      getJSON<TodayQuizResponse>("http://127.0.0.1:8000/api/v1/quiz/today"),
+      getJSON<TodayQuizResponse>(`${API_BASE}/quiz/today`),
     
     getAllToday: () =>
-      getJSON<AllTodayQuizzesResponse>("http://127.0.0.1:8000/api/v1/quiz/today/all"),
+      getJSON<AllTodayQuizzesResponse>(`${API_BASE}/quiz/today/all`),
     
     submit: (data: { quiz_id: number; answer: number | null; time_spent: number; practice_mode?: boolean }) =>
-      postJSON<QuizSubmitResponse>("http://127.0.0.1:8000/api/v1/quiz/submit", data),
+      postJSON<QuizSubmitResponse>(`${API_BASE}/quiz/submit`, data),
   },
 };

@@ -17,6 +17,8 @@
   actors?: string[];
 }
 
+import { API_BASE } from '@/lib/config';
+
 export async function getSimpleRecommendations(
   query: string,
   genres: string[],
@@ -25,7 +27,7 @@ export async function getSimpleRecommendations(
   usePhase36: boolean = true  // Phase 3.6 預設啟用 ⭐
 ): Promise<{ movies: RecommendedMovie[]; strategy: string; version?: string }> {
   try {
-    const response = await fetch("http://localhost:8000/api/recommend/v2/movies", {
+    const response = await fetch(`${API_BASE}/recommend/v2/movies`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

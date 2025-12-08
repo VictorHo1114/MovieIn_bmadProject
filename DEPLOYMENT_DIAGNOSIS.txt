@@ -1,0 +1,62 @@
+﻿========================================
+MovieIn 部署診斷報告
+========================================
+
+ 後端狀態:
+   - URL: https://moviein-api.onrender.com
+   - 數據庫連接:  Connected to Neon
+   - Swagger 文檔:  可訪問
+
+ 前端狀態:
+   - API 配置: https://moviein-api.onrender.com/api/v1
+   - Mock 模式: 已停用
+
+========================================
+登入問題診斷步驟
+========================================
+
+可能原因 1: 數據庫中沒有用戶
+解決方案: 需要先註冊一個新用戶
+
+可能原因 2: CORS 設定問題
+檢查方法: 
+1. 打開瀏覽器開發者工具 (F12)
+2. 切換到 Console 標籤
+3. 嘗試登入
+4. 查看是否有 CORS 錯誤
+
+可能原因 3: 前端環境變數未生效
+解決方案: Vercel 需要手動設置環境變數
+
+可能原因 4: Render 免費方案自動休眠
+解決方案: 首次訪問需要等待 30-60 秒喚醒服務
+
+========================================
+立即檢查步驟
+========================================
+
+1. 訪問後端 API 文檔:
+   https://moviein-api.onrender.com/docs
+
+2. 在 Swagger UI 測試註冊:
+   - 展開 POST /api/v1/auth/register
+   - 點擊 'Try it out'
+   - 填寫 email 和 password
+   - 點擊 Execute
+
+3. 測試登入:
+   - 展開 POST /api/v1/auth/login
+   - 使用剛註冊的帳號測試
+
+4. 檢查 Vercel 環境變數:
+   - 登入 Vercel Dashboard
+   - 選擇你的專案
+   - Settings  Environment Variables
+   - 確認 NEXT_PUBLIC_API_BASE 設置正確
+
+5. 檢查 Render 環境變數:
+   - 登入 Render Dashboard  
+   - 選擇 moviein-api 服務
+   - Environment  確認所有變數已設置
+
+========================================

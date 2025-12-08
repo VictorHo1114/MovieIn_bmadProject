@@ -6,6 +6,7 @@ import { PageLayout } from '@/components/layouts';
 import { MovieCard } from '@/components/MovieCard';
 import { toMovieCardList } from '@/lib/movieAdapter';
 import { movieExistsCache } from '@/lib/movieExistsCache';
+import { API_BASE } from '@/lib/config';
 
 export default function PopularPage() {
   const [movies, setMovies] = useState<any[]>([]);
@@ -17,7 +18,7 @@ export default function PopularPage() {
 
   const fetchPopularMovies = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/popular/');
+      const response = await fetch(`${API_BASE.replace('/api/v1', '')}/popular/`);
       const data = await response.json();
       const items = data.items || [];
       setMovies(items);
