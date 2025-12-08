@@ -10,7 +10,7 @@ from db.database import SessionLocal, get_db
 from app.services.simple_recommend import recommend_movies_embedding_first
 from app.services.mapping_tables import get_mood_label_list  # 修改導入 ⭐
 
-router = APIRouter(prefix="/api/recommend/v2", tags=["recommend-v2"])
+router = APIRouter(prefix="/api/v1/recommend/v2", tags=["recommend-v2"])
 
 class SimpleRecommendRequest(BaseModel):
     query: str
