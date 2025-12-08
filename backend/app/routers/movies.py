@@ -13,7 +13,7 @@ from db.database import get_db
 from app.models import Movie
 from app.schemas.movie_result import FrontendMovie
 
-router = APIRouter(prefix="/api/movies", tags=["movies"])
+router = APIRouter(prefix="/api/v1/movies", tags=["movies"])
 
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 TMDB_BASE_URL = "https://api.themoviedb.org/3"

@@ -18,7 +18,7 @@ from app.schemas.watchlist import (
 from app.schemas.movie_result import FrontendMovie
 from app.core.security import get_current_user
 
-router = APIRouter(prefix="/api/watchlist", tags=["watchlist"])
+router = APIRouter(prefix="/api/v1/watchlist", tags=["watchlist"])
 
 
 def _build_frontend_movie(movie: Movie) -> FrontendMovie:

@@ -19,7 +19,7 @@ from app.schemas.top10 import (
 from app.schemas.movie_result import FrontendMovie
 from app.core.security import get_current_user
 
-router = APIRouter(prefix="/api/top10", tags=["top10"])
+router = APIRouter(prefix="/api/v1/top10", tags=["top10"])
 
 
 def _build_frontend_movie(movie: Movie) -> FrontendMovie:
