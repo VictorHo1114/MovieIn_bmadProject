@@ -1,163 +1,955 @@
-# BMAD-METHOD™: Universal AI Agent Framework
+# 🎬 MovieIn - 趣味化電影社交娛樂平台
 
-[![Version](https://img.shields.io/npm/v/bmad-method?color=blue&label=version)](https://www.npmjs.com/package/bmad-method)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org)
-[![Discord](https://img.shields.io/badge/Discord-Join%20Community-7289da?logo=discord&logoColor=white)](https://discord.gg/gk8jAdXWmj)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.119.1-009688?logo=fastapi)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js-16.0.0-000000?logo=next.js)](https://nextjs.org)
+[![React](https://img.shields.io/badge/React-19.2.0-61dafb?logo=react)](https://react.dev)
+[![Neon](https://img.shields.io/badge/Database-Neon_PostgreSQL-00E699?logo=postgresql&logoColor=white)](https://neon.tech)
+[![Built with BMAD](https://img.shields.io/badge/Built%20with-BMAD%20Method-purple?logo=github)](https://github.com/bmadcode/BMAD-METHOD)
 
-Foundations in Agentic Agile Driven Development, known as the Breakthrough Method of Agile AI-Driven Development, yet so much more. Transform any domain with specialized AI expertise: software development, entertainment, creative writing, business strategy to personal wellness just to name a few.
+> 🎉 **MovieIn** 不只是推薦電影，更是**電影愛好者的社交天堂**！透過 AI 智能推薦找到心儀電影，用觀影品味結交志同道合的影友，打造專屬你的電影社交圈。
 
-**[Subscribe to BMadCode on YouTube](https://www.youtube.com/@BMadCode?sub_confirmation=1)**
+**⚡ 使用 [BMAD Method™](https://github.com/bmadcode/BMAD-METHOD) 打造** - 革命性的 Agentic Agile 開發方法，由 AI 代理團隊（分析師、架構師、產品經理、Scrum Master、開發者、QA）協作設計並實現這個全端平台。
 
-**[Join our Discord Community](https://discord.gg/gk8jAdXWmj)** - A growing community for AI enthusiasts! Get help, share ideas, explore AI agents & frameworks, collaborate on tech projects, enjoy hobbies, and help each other succeed. Whether you're stuck on BMad, building your own agents, or just want to chat about the latest in AI - we're here for you! **Some mobile and VPN may have issue joining the discord, this is a discord issue - if the invite does not work, try from your own internet or another network, or non-VPN.**
+---
 
-⭐ **If you find this project helpful or useful, please give it a star in the upper right hand corner!** It helps others discover BMAD-METHOD™ and you will be notified of updates!
+## 🎯 MovieIn 核心價值
 
-## Overview
+### 🎬 為電影愛好者打造的社交娛樂平台
 
-**BMAD-METHOD™'s Two Key Innovations:**
+**MovieIn 的使命：** 讓喜愛電影的人不再孤單觀影，透過共同的觀影品味建立真實連結。
 
-**1. Agentic Planning:** Dedicated agents (Analyst, PM, Architect) collaborate with you to create detailed, consistent PRDs and Architecture documents. Through advanced prompt engineering and human-in-the-loop refinement, these planning agents produce comprehensive specifications that go far beyond generic AI task generation.
+#### 三大核心體驗
 
-**2. Context-Engineered Development:** The Scrum Master agent then transforms these detailed plans into hyper-detailed development stories that contain everything the Dev agent needs - full context, implementation details, and architectural guidance embedded directly in story files.
+1. **🎪 趣味化推薦** 
+   - 用自然語言表達心情：「今天想看點輕鬆搞笑的」
+   - AI 秒懂你的需求，推薦最合適的電影
+   - 不只是冰冷的演算法，而是懂你的觀影夥伴
 
-This two-phase approach eliminates both **planning inconsistency** and **context loss** - the biggest problems in AI-assisted development. Your Dev agent opens a story file with complete understanding of what to build, how to build it, and why.
+2. **👥 片單社交** 
+   - 分享你的觀影清單(Watchlist/Top10 List)，展現獨特品味
+   - 找到和你口味相似的影友
+   - 透過電影開啟話題，建立深度連結
 
-**📖 [See the complete workflow in the User Guide](docs/user-guide.md)** - Planning phase, development cycle, and all agent roles
+3. **🎮 娛樂互動** 
+   - 趣味測驗：探索你的電影人格
+   - 排行榜：發現社群熱門電影
+   - 評分分享：影響彼此的觀影選擇
 
-## Quick Navigation
+### 解決的核心痛點
 
-### Understanding the BMad Workflow
+ 傳統困境 vs MovieIn 創新解決方案 
 
-**Before diving in, review these critical workflow diagrams that explain how BMad works:**
+一、
+**選擇疲勞、缺乏智慧推薦**：平台有數千部電影卻不知看什麼 
+**AI 智能推薦** Phase 3.6 混合推薦引擎，精準理解需求 
+二、
+**孤單觀影**：市面上鮮少有電影為主題的交友社群Application 
+**片單交友**透過觀影品味 (Top10 List 與Watchlist 的交換與共享)找到知音影友 
 
-1. **[Planning Workflow (Web UI)](docs/user-guide.md#the-planning-workflow-web-ui)** - How to create PRD and Architecture documents
-2. **[Core Development Cycle (IDE)](docs/user-guide.md#the-core-development-cycle-ide)** - How SM, Dev, and QA agents collaborate through story files
 
-> ⚠️ **These diagrams explain 90% of BMad Method Agentic Agile flow confusion** - Understanding the PRD+Architecture creation and the SM/Dev/QA workflow and how agents pass notes through story files is essential - and also explains why this is NOT taskmaster or just a simple task runner!
+## ✨ 核心功能特色
 
-### What would you like to do?
+### 🎯 Phase 3.6 智能混合推薦系統
 
-- **[Install and Build software with Full Stack Agile AI Team](#quick-start)** → Quick Start Instruction
-- **[Learn how to use BMad](docs/user-guide.md)** → Complete user guide and walkthrough
-- **[See available AI agents](/bmad-core/agents)** → Specialized roles for your team
-- **[Explore non-technical uses](#-beyond-software-development---expansion-packs)** → Creative writing, business, wellness, education
-- **[Create my own AI agents](docs/expansion-packs.md)** → Build agents for your domain
-- **[Browse ready-made expansion packs](expansion-packs/)** → Game dev, DevOps, infrastructure and get inspired with ideas and examples
-- **[Understand the architecture](docs/core-architecture.md)** → Technical deep dive
-- **[Join the community](https://discord.gg/gk8jAdXWmj)** → Get help and share ideas
+**突破性的雙引擎推薦架構：**
 
-## Important: Keep Your BMad Installation Updated
-
-**Stay up-to-date effortlessly!** If you already have BMAD-METHOD™ installed in your project, simply run:
-
-```bash
-npx bmad-method install
-# OR
-git pull
-npm run install:bmad
+```
+┌─────────────────────────────────────────────────────┐
+│          Phase 3.6 混合推薦引擎                      │
+│                                                      │
+│  ┌──────────────────┐      ┌───────────────────┐  │
+│  │ Feature Matching │      │ Embedding Vector  │  │
+│  │ Engine (Phase 1) │      │ Engine (Phase 3.6)│  │
+│  │                  │      │                   │  │
+│  │ • 類型匹配        │      │ • OpenAI Embedding│  │
+│  │ • 關鍵字匹配      │      │ • 語義相似度      │  │
+│  │ • 心情標籤匹配    │      │ • 深度理解語境    │  │
+│  └────────┬─────────┘      └─────────┬─────────┘  │
+│           │                          │             │
+│           └──────────┬───────────────┘             │
+│                      ▼                              │
+│           ┌──────────────────────┐                 │
+│           │   智能決策邏輯        │                 │
+│           │  (自動選擇最佳引擎)   │                 │
+│           └──────────────────────┘                 │
+└─────────────────────────────────────────────────────┘
 ```
 
-This will:
+#### Feature Matching Engine
+- **精準特徵匹配**：基於電影的結構化資料（genres, keywords, mood_tags）
+- **確定性推薦**：當使用者需求明確時，提供最相關的結果
+- **高效能查詢**：直接從 Neon PostgreSQL 進行索引查詢
 
-- ✅ Automatically detect your existing v4 installation
-- ✅ Update only the files that have changed and add new files
-- ✅ Create `.bak` backup files for any custom modifications you've made
-- ✅ Preserve your project-specific configurations
+#### Embedding Vector Engine（Phase 3.6 核心創新）
+- **OpenAI text-embedding-3-small**：將電影描述轉換為 1536 維語義向量
+- **深度語義理解**：理解「輕鬆愉快的科幻喜劇」背後的真實含義
+- **相似度計算**：使用餘弦相似度找出語義最接近的電影
+- **情境感知**：捕捉當下心情與觀影需求的細微差異
 
-This makes it easy to benefit from the latest improvements, bug fixes, and new agents without losing your customizations!
-
-## Quick Start
-
-### One Command for Everything (IDE Installation)
-
-**Just run one of these commands:**
-
-```bash
-npx bmad-method install
-# OR if you already have BMad installed:
-git pull
-npm run install:bmad
+#### 智能決策邏輯
+```python
+# 系統自動判斷最佳推薦策略
+if user_input.has_clear_features:
+    # 明確需求 → Feature Matching
+    return feature_matching_engine(genres, keywords, moods)
+else:
+    # 模糊描述 → Embedding Vector
+    return embedding_engine(natural_language_query)
 ```
 
-This single command handles:
+### 💬 自然語言對話式推薦
 
-- **New installations** - Sets up BMad in your project
-- **Upgrades** - Updates existing installations automatically
-- **Expansion packs** - Installs any expansion packs you've added to package.json
-
-> **That's it!** Whether you're installing for the first time, upgrading, or adding expansion packs - these commands do everything.
-
-**Prerequisites**: [Node.js](https://nodejs.org) v20+ required
-
-### Fastest Start: Web UI Full Stack Team at your disposal (2 minutes)
-
-1. **Get the bundle**: Save or clone the [full stack team file](dist/teams/team-fullstack.txt) or choose another team
-2. **Create AI agent**: Create a new Gemini Gem or CustomGPT
-3. **Upload & configure**: Upload the file and set instructions: "Your critical operating instructions are attached, do not break character as directed"
-4. **Start Ideating and Planning**: Start chatting! Type `*help` to see available commands or pick an agent like `*analyst` to start right in on creating a brief.
-5. **CRITICAL**: Talk to BMad Orchestrator in the web at ANY TIME (#bmad-orchestrator command) and ask it questions about how this all works!
-6. **When to move to the IDE**: Once you have your PRD, Architecture, optional UX and Briefs - its time to switch over to the IDE to shard your docs, and start implementing the actual code! See the [User guide](docs/user-guide.md) for more details
-
-### Alternative: Clone and Build
-
-```bash
-git clone https://github.com/bmadcode/bmad-method.git
-npm run install:bmad # build and install all to a destination folder
+**真正理解你的話：**
+```
+使用者：「週末想和家人看點溫馨感人的電影」
+      ↓
+AI 解析：
+  ✓ 情境：家庭觀影
+  ✓ 心情：Heartwarming, Emotional
+  ✓ 類型：Family, Drama
+  ✓ 排除：暴力、恐怖內容
+      ↓
+推薦：《可可夜總會》、《心靈奇旅》、《腦筋急轉彎》
 ```
 
-## 🌟 Beyond Software Development - Expansion Packs
+### 👥 片單社交 - 用電影交朋友
 
-BMAD™'s natural language framework works in ANY domain. Expansion packs provide specialized AI agents for creative writing, business strategy, health & wellness, education, and more. Also expansion packs can expand the core BMAD-METHOD™ with specific functionality that is not generic for all cases. [See the Expansion Packs Guide](docs/expansion-packs.md) and learn to create your own!
+#### 觀影清單分享
+- **個人化片單**：建立專屬的「想看清單」、「已看清單」
+- **品味展示**：透過觀影紀錄展現你的電影品味
+- **清單公開**：讓其他影友發現你的精選片單
 
-## Documentation & Resources
+#### 社交功能
+- **好友系統**：加入志同道合的電影愛好者
+- **品味匹配**：系統推薦口味相似的潛在影友
+- **評論互動**：和朋友討論電影心得與感想
+- **共同興趣**：發現你和好友都喜歡的電影類型
 
-### Essential Guides
+#### 社群互動
+- **Top 10 排行榜**：看看社群都在追什麼片
+- **熱門討論**：參與最火熱的電影話題
+- **影友推薦**：接收來自好友的私人推薦
 
-- 📖 **[User Guide](docs/user-guide.md)** - Complete walkthrough from project inception to completion
-- 🏗️ **[Core Architecture](docs/core-architecture.md)** - Technical deep dive and system design
-- 🚀 **[Expansion Packs Guide](docs/expansion-packs.md)** - Extend BMad to any domain beyond software development
+### 🎮 趣味化娛樂體驗
 
-## Support
+#### 智能測驗系統
+- **電影人格測試**：透過問答了解你的觀影偏好
+- **品味分析**：生成個人化的電影品味報告
+- **推薦優化**：測驗結果強化推薦精準度
 
-- 💬 [Discord Community](https://discord.gg/gk8jAdXWmj)
-- 🐛 [Issue Tracker](https://github.com/bmadcode/bmad-method/issues)
-- 💬 [Discussions](https://github.com/bmadcode/bmad-method/discussions)
+#### 遊戲化元素
+- **觀影成就**：解鎖不同類型的電影徽章
+- **探索挑戰**：嘗試新類型電影獲得獎勵
+- **社群排名**：看看誰是最活躍的影評人
 
-## Contributing
+### 🏷️ 增強特徵提取系統
+- **心情標籤映射表**：70+ 標籤（Romantic, Thrilling, Dark, Uplifting, Adventurous...）
+- **關鍵字精準匹配**：30,000+ 電影關鍵字完整資料庫
+- **多維度分析**：類型 × 心情 × 關鍵字三維交叉分析
 
-**We're excited about contributions and welcome your ideas, improvements, and expansion packs!** 🎉
+---
 
-📋 **[Read CONTRIBUTING.md](CONTRIBUTING.md)** - Complete guide to contributing, including guidelines, process, and requirements
+## 🏗️ 技術架構
 
-### Working with Forks
+### 技術棧總覽
 
-When you fork this repository, CI/CD workflows are **disabled by default** to save resources. This is intentional and helps keep your fork clean.
+#### 後端技術
+| 技術 | 版本 | 用途 |
+|------|------|------|
+| **FastAPI** | 0.119.1 | 高效能非同步 Python Web 框架 |
+| **Neon PostgreSQL** | Serverless | ⭐ **雲端 Serverless 資料庫**<br>• 30,000+ 部電影完整資料<br>• 自動擴展與休眠<br>• 超低延遲查詢 |
+| **SQLAlchemy** | 2.0.36 | ORM 資料庫抽象層 |
+| **OpenAI Embedding** | text-embedding-3-small | Phase 3.6 語義向量引擎 |
+| **Redis** | 5.0.1 | 推薦結果快取與 Session 管理 |
+| **Alembic** | 1.14.0 | 資料庫版本控制與遷移 |
+| **JWT + PassLib** | Latest | 使用者認證與授權 |
 
-#### Need CI/CD in Your Fork?
+#### 前端技術
+| 技術 | 版本 | 用途 |
+|------|------|------|
+| **Next.js** | 16.0.0 | React 框架（App Router） |
+| **React** | 19.2.0 | UI 函式庫（最新版） |
+| **Zustand** | 5.0.8 | 輕量級狀態管理 |
+| **Tailwind CSS** | 4.x | Utility-first CSS 框架 |
+| **ky** | 1.13.0 | 現代化 HTTP 客戶端 |
+| **TypeScript** | 5.x | 完整型別安全 |
 
-See our [Fork CI/CD Guide](.github/FORK_GUIDE.md) for instructions on enabling workflows in your fork.
+### 🗄️ Neon PostgreSQL - 資料庫核心
 
-#### Contributing Workflow
+**為什麼選擇 Neon？**
 
-1. **Fork the repository** - Click the Fork button on GitHub
-2. **Clone your fork** - `git clone https://github.com/YOUR-USERNAME/BMAD-METHOD.git`
-3. **Create a feature branch** - `git checkout -b feature/amazing-feature`
-4. **Make your changes** - Test locally with `npm test`
-5. **Commit your changes** - `git commit -m 'feat: add amazing feature'`
-6. **Push to your fork** - `git push origin feature/amazing-feature`
-7. **Open a Pull Request** - CI/CD will run automatically on the PR
+```
+┌─────────────────────────────────────────────────────┐
+│            Neon Serverless PostgreSQL               │
+│                                                      │
+│  ✨ 核心優勢：                                       │
+│  • Serverless 架構 - 無伺服器管理負擔              │
+│  • 自動擴展 - 根據負載自動調整資源                  │
+│  • 按需付費 - 閒置時自動休眠節省成本                │
+│  • 極速查詢 - 全球 CDN 加速                         │
+│  • 分支功能 - 像 Git 一樣管理資料庫                 │
+└─────────────────────────────────────────────────────┘
+```
 
-Your contributions are tested when you submit a PR - no need to enable CI in your fork!
+#### 資料庫架構設計
 
-## License
+**核心資料表：**
 
-MIT License - see [LICENSE](LICENSE) for details.
+```sql
+-- 電影資料表（30,000+ 筆記錄）
+movies
+  ├─ id (Primary Key)
+  ├─ title, overview, release_date
+  ├─ genres (Array) - 電影類型
+  ├─ keywords (Array) - 關鍵字標籤
+  ├─ mood_tags (Array) - 心情標籤
+  ├─ vote_average, vote_count - 評分數據
+  ├─ poster_path, backdrop_path - 視覺素材
+  └─ embedding_vector (1536 dimensions) - Phase 3.6 語義向量
 
-## Trademark Notice
+-- 使用者資料表
+users
+  ├─ id (Primary Key)
+  ├─ username, email, hashed_password
+  ├─ movie_preferences (JSON) - 測驗結果
+  └─ created_at, updated_at
 
-BMAD™ and BMAD-METHOD™ are trademarks of BMad Code, LLC. All rights reserved.
+-- 觀影清單表
+watchlists
+  ├─ id (Primary Key)
+  ├─ user_id (Foreign Key → users)
+  ├─ movie_id (Foreign Key → movies)
+  ├─ status (想看/已看/收藏)
+  ├─ rating, review
+  └─ added_at
 
-[![Contributors](https://contrib.rocks/image?repo=bmadcode/bmad-method)](https://github.com/bmadcode/bmad-method/graphs/contributors)
+-- 好友關係表
+friendships
+  ├─ id (Primary Key)
+  ├─ user_id (Foreign Key → users)
+  ├─ friend_id (Foreign Key → users)
+  ├─ status (pending/accepted)
+  └─ created_at
+```
 
-<sub>Built with ❤️ for the AI-assisted development community</sub>
+#### Neon 特色應用
+
+1. **Embedding Vector 儲存**
+   ```sql
+   -- 利用 Neon 原生支援 PostgreSQL pgvector 擴展
+   CREATE EXTENSION vector;
+   
+   -- 儲存 OpenAI Embedding 向量
+   ALTER TABLE movies 
+   ADD COLUMN embedding_vector vector(1536);
+   
+   -- 高效相似度查詢
+   SELECT title, 
+          1 - (embedding_vector <=> query_vector) AS similarity
+   FROM movies
+   ORDER BY embedding_vector <=> query_vector
+   LIMIT 10;
+   ```
+
+2. **自動擴展能力**
+   - 高峰期（週末夜晚）：自動增加運算資源
+   - 離峰期（深夜凌晨）：自動休眠節省成本
+   - 無縫擴展：使用者無感知的性能提升
+
+3. **開發分支功能**
+   ```bash
+   # 像 Git 一樣管理資料庫
+   neon branches create dev-feature-xyz
+   neon branches create staging
+   neon branches merge dev-feature-xyz → main
+   ```
+
+### 系統架構圖
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    使用者介面層                          │
+│         Next.js 16 + React 19 + Tailwind CSS            │
+│                                                          │
+│  🏠 首頁：自然語言輸入 + 趣味標籤選擇                    │
+│  🔍 搜尋：智能電影搜尋與篩選                             │
+│  👤 個人：觀影清單 + 片單分享 + 影友互動                 │
+│  👥 社交：好友動態 + 共同興趣 + 評論互動                 │
+└────────────────┬────────────────────────────────────────┘
+                 │ HTTP/JSON (ky)
+                 │ API Base: http://127.0.0.1:8000
+┌────────────────┴────────────────────────────────────────┐
+│                    API 閘道層                            │
+│           FastAPI + CORS Middleware                      │
+│                                                          │
+│  /recommend         - Phase 3.6 混合推薦引擎             │
+│  /search            - 電影搜尋 API                       │
+│  /profile           - 使用者資料管理                     │
+│  /watchlist         - 觀影清單 CRUD                      │
+│  /friends           - 好友系統 API                       │
+│  /quiz              - 趣味測驗系統                       │
+│  /top10             - 社群排行榜                         │
+└────────────────┬────────────────────────────────────────┘
+                 │
+┌────────────────┴────────────────────────────────────────┐
+│                   核心服務層                             │
+│                                                          │
+│  ┌──────────────────────────────────────────┐          │
+│  │  Phase 3.6 混合推薦引擎                   │          │
+│  │  (simple_recommend.py)                    │          │
+│  │                                           │          │
+│  │   ┌─────────────┐      ┌──────────────┐ │          │
+│  │   │Feature Match│◄────►│Embedding     │ │          │
+│  │   │Engine       │      │Vector Engine │ │          │
+│  │   │(Phase 1-3)  │      │(Phase 3.6)   │ │          │
+│  │   └─────────────┘      └──────────────┘ │          │
+│  │           │                    │         │          │
+│  │           ▼                    ▼         │          │
+│  │   ┌──────────────────────────────────┐  │          │
+│  │   │   智能決策邏輯（自動選擇）        │  │          │
+│  │   └──────────────────────────────────┘  │          │
+│  └──────────────────────────────────────────┘          │
+│                                                          │
+│  ┌──────────────────────────────────────────┐          │
+│  │ 增強特徵提取服務                          │          │
+│  │ (enhanced_feature_extraction.py)          │          │
+│  │  • Mood Label 映射表（70+ 標籤）          │          │
+│  │  • Keyword 精準匹配                       │          │
+│  │  • 自然語言推斷                           │          │
+│  └──────────────────────────────────────────┘          │
+│                                                          │
+│  ┌──────────────────────────────────────────┐          │
+│  │ Embedding 向量服務 (Phase 3.6)            │          │
+│  │ (embedding_service.py)                    │          │
+│  │  • OpenAI text-embedding-3-small          │          │
+│  │  • 1536 維語義向量生成                    │          │
+│  │  • 餘弦相似度計算                         │          │
+│  └──────────────────────────────────────────┘          │
+│                                                          │
+│  ┌──────────────────────────────────────────┐          │
+│  │ 社交服務層                                │          │
+│  │  • 好友關係管理                           │          │
+│  │  • 片單分享與推薦                         │          │
+│  │  • 社群互動功能                           │          │
+│  └──────────────────────────────────────────┘          │
+└────────────────┬────────────────────────────────────────┘
+                 │
+┌────────────────┴────────────────────────────────────────┐
+│                   資料層                                 │
+│                                                          │
+│  ┌───────────────────────────────────────┐              │
+│  │   Neon Serverless PostgreSQL          │              │
+│  │   ⭐ 雲端 Serverless 資料庫            │              │
+│  │                                        │              │
+│  │   📊 資料表：                          │              │
+│  │   • movies (30,000+ 筆)                │              │
+│  │     - 完整電影資料                     │              │
+│  │     - embedding_vector (1536D)         │              │
+│  │   • users (使用者資料)                 │              │
+│  │   • watchlists (觀影清單)              │              │
+│  │   • friendships (好友關係)             │              │
+│  │   • quiz_results (測驗結果)            │              │
+│  │                                        │              │
+│  │   🚀 特色：                            │              │
+│  │   • pgvector 向量擴展                  │              │
+│  │   • 自動擴展 & 休眠                    │              │
+│  │   • 分支管理功能                       │              │
+│  └───────────────────────────────────────┘              │
+│                                                          │
+│  ┌─────────────┐   ┌──────────────┐                    │
+│  │Redis Cache  │   │JWT Auth      │                    │
+│  │• 推薦快取   │   │• 使用者認證  │                    │
+│  │• Session    │   │• Token 管理  │                    │
+│  └─────────────┘   └──────────────┘                    │
+└──────────────────────────────────────────────────────────┘
+```
+│  個人：觀看清單 + 評分 + 好友                            │
+└────────────────┬────────────────────────────────────────┘
+                 │ HTTP/JSON (ky)
+                 │ http://127.0.0.1:8000
+┌────────────────┴────────────────────────────────────────┐
+│                    API 閘道層                            │
+│              FastAPI + CORS Middleware                   │
+│                                                          │
+│  /recommend     - 智能推薦引擎                           │
+│  /search        - 電影搜尋                               │
+│  /profile       - 使用者資料                             │
+│  /watchlist     - 觀看清單                               │
+│  /quiz          - 測驗系統                               │
+│  /top10         - 排行榜                                 │
+└────────────────┬────────────────────────────────────────┘
+                 │
+┌────────────────┴────────────────────────────────────────┐
+│                   核心服務層                             │
+│                                                          │
+│  ┌──────────────────────────────────────────┐          │
+│  │   智能混合推薦引擎 (simple_recommend.py)  │          │
+│  │                                           │          │
+│  │   ┌─────────────┐      ┌──────────────┐ │          │
+│  │   │Feature Match│      │Embedding     │ │          │
+│  │   │Engine       │◄────►│Engine        │ │          │
+│  │   └─────────────┘      └──────────────┘ │          │
+│  │           │                    │         │          │
+│  │           ▼                    ▼         │          │
+│  │   ┌──────────────────────────────────┐  │          │
+│  │   │   決策邏輯（自動選擇引擎）        │  │          │
+│  │   └──────────────────────────────────┘  │          │
+│  └──────────────────────────────────────────┘          │
+│                                                          │
+│  ┌──────────────────────────────────────────┐          │
+│  │ 增強特徵提取 (enhanced_feature_extraction) │          │
+│  │  - Mood Label 映射表                      │          │
+│  │  - Keyword 精準匹配                       │          │
+│  │  - 自然語言推斷                           │          │
+│  └──────────────────────────────────────────┘          │
+│                                                          │
+│  ┌──────────────────────────────────────────┐          │
+│  │ Embedding 服務 (embedding_service.py)     │          │
+│  │  - OpenAI text-embedding-3-small          │          │
+│  │  - 向量相似度計算                         │          │
+│  └──────────────────────────────────────────┘          │
+└────────────────┬────────────────────────────────────────┘
+                 │
+┌────────────────┴────────────────────────────────────────┐
+│                   資料存取層                             │
+│                                                          │
+│  PostgreSQL (Neon)   │   Redis Cache   │   Auth JWT    │
+│  - movies            │   - 推薦快取    │   - 使用者認證 │
+│  - users             │   - 查詢快取    │   - Session   │
+│  - watchlists        │                 │                │
+│  - friendships       │                 │                │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Phase 3.6 推薦系統資料流程
+
+#### 場景一：自然語言推薦（使用 Embedding Vector）
+
+```
+👤 使用者：「週末想和家人看點溫馨感人的動畫片」
+         │
+         ▼
+🎨 前端 (HomeClient.tsx)
+   • 捕捉使用者輸入
+   • 選擇的心情標籤：Heartwarming
+         │
+         ▼
+📡 API 層 (POST /recommend)
+   {
+     "user_input": "週末想和家人看點溫馨感人的動畫片",
+     "mood_labels": ["Heartwarming"],
+     "randomness": 0.3
+   }
+         │
+         ▼
+🧠 特徵提取服務 (enhanced_feature_extraction.py)
+   ✓ 解析自然語言
+   ✓ 提取：Family, Heartwarming, Emotional
+   ✓ 識別類型：Animation
+         │
+         ▼
+⚙️ Phase 3.6 推薦引擎決策 (simple_recommend.py)
+   ┌─────────────────────────────────────┐
+   │ 分析：模糊描述 + 情境語境           │
+   │ 決策：使用 Embedding Vector Engine  │
+   └─────────────────────────────────────┘
+         │
+         ▼
+🔮 Embedding Vector 處理 (embedding_service.py)
+   1. 將查詢轉換為向量
+      query_vector = openai.embed("溫馨感人的家庭動畫片")
+   
+   2. 從 Neon PostgreSQL 查詢相似電影
+      SELECT title, overview, genres,
+             1 - (embedding_vector <=> query_vector) AS similarity
+      FROM movies
+      WHERE genres @> ARRAY['Animation']
+      ORDER BY embedding_vector <=> query_vector
+      LIMIT 20
+   
+   3. 計算語義相似度分數
+         │
+         ▼
+🗄️ Neon PostgreSQL
+   • 使用 pgvector 擴展快速向量查詢
+   • 返回前 20 部最相似電影
+   • 查詢時間 < 50ms
+         │
+         ▼
+📊 結果排序與多樣性調整
+   • 應用 randomness 參數 (0.3)
+   • 混入部分探索性推薦
+   • 確保推薦多樣性
+         │
+         ▼
+✅ 返回推薦結果
+   [
+     { title: "可可夜總會", similarity: 0.92 },
+     { title: "腦筋急轉彎", similarity: 0.89 },
+     { title: "心靈奇旅", similarity: 0.87 },
+     ...
+   ]
+         │
+         ▼
+🎬 前端渲染電影卡片
+   • 顯示海報、標題、簡介
+   • 提供加入觀影清單按鈕
+   • 顯示相似度評分
+```
+
+#### 場景二：片單社交互動流程
+
+```
+👤 使用者 A：想找口味相似的影友
+         │
+         ▼
+📋 查看自己的觀影清單
+   GET /watchlist?user_id=123
+         │
+         ▼
+🔍 系統分析使用者品味
+   • 統計最愛類型：Animation (40%), Sci-Fi (30%)
+   • 心情偏好：Uplifting, Adventurous
+   • 平均評分：偏好高分電影 (>8.0)
+         │
+         ▼
+🤝 推薦潛在影友 (好友推薦系統)
+   SELECT u.*, 
+          COUNT(CASE WHEN w1.movie_id = w2.movie_id THEN 1 END) as common_movies
+   FROM users u
+   JOIN watchlists w2 ON u.id = w2.user_id
+   WHERE EXISTS (
+     SELECT 1 FROM watchlists w1 
+     WHERE w1.user_id = 123 
+     AND w1.movie_id = w2.movie_id
+   )
+   GROUP BY u.id
+   ORDER BY common_movies DESC
+   LIMIT 10
+         │
+         ▼
+👥 顯示潛在影友清單
+   「用戶 B 和你有 15 部共同喜愛的電影！」
+         │
+         ▼
+💌 發送好友邀請
+   POST /friends/invite
+   { friend_id: 456 }
+         │
+         ▼
+🔔 通知系統
+   推播通知給使用者 B
+         │
+         ▼
+✅ 建立好友關係
+   • 可以查看彼此的觀影清單
+   • 互相推薦電影
+   • 評論互動
+```
+
+#### 場景三：Feature Matching 推薦流程
+
+```
+👤 使用者：選擇標籤「Action + Thrilling + Dark」
+         │
+         ▼
+⚙️ Phase 3.6 推薦引擎決策
+   ┌─────────────────────────────────────┐
+   │ 分析：明確的特徵標籤                │
+   │ 決策：使用 Feature Matching Engine  │
+   └─────────────────────────────────────┘
+         │
+         ▼
+🎯 Feature Matching 查詢 (Neon PostgreSQL)
+   SELECT * FROM movies
+   WHERE genres @> ARRAY['Action']
+   AND mood_tags && ARRAY['Thrilling', 'Dark']
+   AND vote_average > 7.0
+   ORDER BY vote_count DESC, vote_average DESC
+   LIMIT 20
+         │
+         ▼
+✅ 返回精準匹配結果
+   [黑暗騎士、全面啟動、無間道...]
+```
+
+---
+
+## 🎯 使用 BMAD Method™ 開發
+
+### 什麼是 BMAD Method？
+
+**BMAD (Breakthrough Method of Agile AI-Driven Development)** 是一個革命性的 AI 代理協作開發框架，透過專業化的 AI 代理團隊進行全生命週期軟體開發。
+
+### MovieIn 如何使用 BMAD
+
+本專案完全採用 BMAD Method 進行開發，整個過程展示了 AI 代理團隊協作的強大能力：
+
+#### 📋 規劃階段（Planning Phase）
+
+1. **分析師代理 (Analyst Agent)** 
+   - 需求訪談與分析
+   - 建立使用者故事
+   - 定義核心痛點
+
+2. **產品經理代理 (PM Agent)**
+   - 撰寫產品需求文件 (PRD)
+   - 定義功能優先級
+   - 規劃產品路線圖
+
+3. **架構師代理 (Architect Agent - Winston)**
+   - 設計系統架構（brownfield architecture）
+   - 技術選型與評估
+   - 建立 `docs/architecture.md`
+
+#### 🏗️ 開發階段（Development Phase）
+
+4. **Scrum Master 代理**
+   - 將 PRD 與架構文件拆分為開發故事
+   - 管理 Sprint 進度
+   - 協調代理團隊
+
+5. **開發者代理 (Dev Agent)**
+   - 實現每個故事的程式碼
+   - 遵循架構設計原則
+   - 建立測試與文件
+
+6. **QA 代理**
+   - 自動化測試
+   - 整合測試
+   - 效能與安全測試
+
+### BMAD 帶來的優勢
+
+| 傳統開發 | BMAD Method 開發 |
+|---------|-----------------|
+| 手動撰寫規格文件 | AI 代理協助建立詳細 PRD |
+| 架構設計需要反覆討論 | Architect Agent 提供完整架構分析 |
+| 開發與規格脫節 | Scrum Master 確保故事與規格一致 |
+| 人工測試耗時 | QA Agent 自動化測試 |
+| 文件常常過時 | 代理自動更新文件 |
+
+### 專案結構（BMAD 組織）
+
+```
+bmad-method/
+├── .bmad-core/              # BMAD 核心配置
+│   ├── core-config.yaml     # 專案配置
+│   └── agents/              # AI 代理定義
+├── docs/
+│   ├── architecture.md      # Winston 建立的架構文件
+│   ├── QUICKSTART.md        # 快速開始指南
+│   └── *.md                 # 其他規格文件
+├── backend/                 # FastAPI 後端
+│   ├── app/
+│   │   ├── services/        # 核心服務（推薦引擎等）
+│   │   ├── routers/         # API 路由
+│   │   └── models/          # 資料模型
+│   └── db/                  # 資料庫配置
+├── frontend/                # Next.js 前端
+│   ├── app/                 # App Router 頁面
+│   ├── features/            # 功能模組
+│   └── lib/                 # 工具函式庫
+└── common/                  # 共用工具與任務
+```
+
+---
+
+## 🚀 快速開始
+
+### 環境需求
+
+- **Node.js** 20+
+- **Python** 3.10+
+- **PostgreSQL** 13+
+- **Redis** 5.0+（選用）
+
+### 安裝步驟
+
+#### 1. Clone 專案
+
+```bash
+git clone https://github.com/VictorHo1114/MovieIn_bmadProject.git
+cd MovieIn_bmadProject
+```
+
+#### 2. 後端設定
+
+```bash
+cd backend
+
+# 建立虛擬環境
+python -m venv venv
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # Linux/Mac
+
+# 安裝依賴
+pip install -r requirements.txt
+
+# 設定環境變數（建立 .env 檔案）
+DATABASE_URL=postgresql://user:password@localhost/moviein
+SECRET_KEY=your-secret-key-here
+OPENAI_API_KEY=your-openai-api-key
+
+# 執行資料庫遷移
+alembic upgrade head
+
+# 啟動後端服務
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+#### 3. 前端設定
+
+```bash
+cd frontend
+
+# 安裝依賴
+npm install
+
+# 設定環境變數（建立 .env.local）
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+
+# 啟動開發伺服器
+npm run dev
+```
+
+#### 4. 存取應用
+
+- **前端**：http://localhost:3000
+- **後端 API**：http://127.0.0.1:8000
+- **API 文件**：http://127.0.0.1:8000/docs
+
+---
+
+## 📖 文件
+
+- **[架構文件](docs/architecture.md)** - 完整的 brownfield 架構分析
+- **[快速開始](docs/QUICKSTART.md)** - 詳細安裝與設定指南
+- **[推薦系統架構](docs/recommendation-system-architecture.md)** - 混合推薦引擎說明
+- **[測驗系統](docs/quiz-system-documentation.md)** - 智能測驗功能
+- **[部署指南](docs/DEPLOYMENT.md)** - 生產環境部署
+
+---
+
+## 🎨 專案亮點與創新
+
+### 🌟 核心技術創新
+
+#### 1. Phase 3.6 智能決策邏輯
+
+**自動判斷最佳推薦策略：**
+
+```python
+# simple_recommend.py - 核心智能決策
+def decide_recommendation_engine(user_input, mood_labels, genres):
+    """
+    Phase 3.6 創新：智能選擇推薦引擎
+    
+    Feature Matching: 當特徵明確時使用
+    Embedding Vector: 當需要深度語義理解時使用
+    """
+    
+    # 分析輸入特徵豐富度
+    feature_score = calculate_feature_richness(
+        mood_labels=mood_labels,
+        genres=genres,
+        keywords=extract_keywords(user_input)
+    )
+    
+    if feature_score >= FEATURE_THRESHOLD:
+        # 特徵豐富 → 使用精準匹配
+        logger.info("🎯 使用 Feature Matching Engine")
+        return feature_matching_engine(mood_labels, genres)
+    else:
+        # 需要語義理解 → 使用 Embedding
+        logger.info("🔮 使用 Embedding Vector Engine")
+        return embedding_vector_engine(user_input)
+```
+
+#### 2. Neon PostgreSQL + pgvector 極速查詢
+
+**毫秒級語義搜尋：**
+
+```sql
+-- Phase 3.6 核心查詢：使用 pgvector 進行向量相似度搜尋
+SELECT 
+    m.id,
+    m.title,
+    m.overview,
+    m.genres,
+    m.poster_path,
+    m.vote_average,
+    -- 計算餘弦相似度（值越接近 1 越相似）
+    1 - (m.embedding_vector <=> :query_vector) AS similarity_score
+FROM movies m
+WHERE 
+    -- 預先篩選以提升效能
+    m.vote_count > 100
+    AND m.vote_average > 6.0
+    -- pgvector 的 <=> 運算子進行向量距離計算
+ORDER BY m.embedding_vector <=> :query_vector
+LIMIT 20;
+
+-- 查詢時間：< 50ms（30,000+ 筆資料）
+-- Neon 自動優化：使用 HNSW 索引加速向量搜尋
+```
+
+#### 3. 心情標籤映射表（SSOT）
+
+**70+ 情緒標籤精準映射：**
+
+```python
+# mapping_tables.py - Single Source of Truth
+MOOD_LABEL_TO_DB_TAGS = {
+    # 正向情緒
+    "Romantic": ["romance", "love", "relationship", "passion"],
+    "Uplifting": ["inspiring", "hopeful", "feel-good", "optimistic"],
+    "Heartwarming": ["touching", "emotional", "family", "friendship"],
+    "Fun": ["entertaining", "enjoyable", "lighthearted", "playful"],
+    
+    # 刺激感受
+    "Thrilling": ["suspense", "tension", "mystery", "edge-of-seat"],
+    "Adventurous": ["epic", "journey", "exploration", "discovery"],
+    "Intense": ["gripping", "powerful", "visceral", "raw"],
+    
+    # 深度情緒
+    "Dark": ["noir", "gritty", "bleak", "haunting"],
+    "Thought-Provoking": ["philosophical", "cerebral", "complex"],
+    "Emotional": ["moving", "poignant", "tearjerker", "dramatic"],
+    
+    # ... 共 70+ 標籤映射
+}
+```
+
+
+
+
+## 🤝 貢獻
+
+歡迎貢獻！請查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解如何參與。
+
+### 開發工作流程
+
+1. Fork 本專案
+2. 建立功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交變更 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 開啟 Pull Request
+
+---
+
+## 📝 授權
+
+---
+
+## 📖 完整文件
+
+- **[架構文件](docs/architecture.md)** - 完整的 Brownfield 架構分析（Winston 架構師撰寫）
+- **[快速開始指南](docs/QUICKSTART.md)** - 詳細安裝與設定教學
+- **[推薦系統架構](docs/recommendation-system-architecture.md)** - Phase 3.6 混合推薦引擎深度解析
+- **[測驗系統文件](docs/quiz-system-documentation.md)** - 智能電影人格測驗系統
+- **[社交功能規格](docs/spec-social-features.md)** - 片單社交與好友系統
+- **[遊戲化功能規格](docs/spec-gaming-features.md)** - 趣味化互動設計
+- **[部署指南](docs/DEPLOYMENT.md)** - 生產環境部署完整流程
+
+---
+
+## 🤝 參與貢獻
+
+歡迎所有形式的貢獻！無論是功能建議、Bug 回報、文件改進或程式碼貢獻。
+
+### 貢獻流程
+
+1. **Fork 本專案**
+2. **建立功能分支** (`git checkout -b feature/amazing-feature`)
+3. **提交變更** (`git commit -m '新增：超讚的新功能'`)
+4. **推送到分支** (`git push origin feature/amazing-feature`)
+5. **開啟 Pull Request**
+
+詳見 [CONTRIBUTING.md](CONTRIBUTING.md) 了解完整貢獻指南。
+
+---
+
+## 📝 授權
+
+本專案採用 **MIT 授權** - 詳見 [LICENSE](LICENSE) 檔案
+
+---
+
+## 🙏 致謝
+
+### 核心技術夥伴
+
+- **[BMAD Method™](https://github.com/bmadcode/BMAD-METHOD)** - 革命性的 AI 代理開發框架
+  - *感謝 BMAD 讓 AI 團隊協作成為可能*
+  
+- **[Neon](https://neon.tech)** - Serverless PostgreSQL 資料庫
+  - *完美的 pgvector 支援，Phase 3.6 的基石*
+  
+- **[OpenAI](https://openai.com/)** - text-embedding-3-small API
+  - *強大的語義理解能力*
+
+### 開發框架與工具
+
+- **[FastAPI](https://fastapi.tiangolo.com/)** - 現代化高效能 Python Web 框架
+- **[Next.js](https://nextjs.org/)** - React 全端框架
+- **[TMDB](https://www.themoviedb.org/)** - 電影資料來源
+- **[Vercel](https://vercel.com/)** - 前端部署平台
+- **[Render](https://render.com/)** - 後端託管服務
+
+---
+
+## 📧 聯絡方式
+
+**Victor Ho** - 專案創建者與維護者
+
+- GitHub: [@VictorHo1114](https://github.com/VictorHo1114)
+- 專案連結: [MovieIn_bmadProject](https://github.com/VictorHo1114/MovieIn_bmadProject)
+
+有任何問題或建議，歡迎：
+- 📬 開啟 [Issue](https://github.com/VictorHo1114/MovieIn_bmadProject/issues)
+- 💬 發起 [Discussion](https://github.com/VictorHo1114/MovieIn_bmadProject/discussions)
+- ⭐ 給專案一個星星支持！
+
+---
+
+## 🎬 專案展望
+
+### 已完成 ✅
+
+- ✅ Phase 3.6 混合推薦系統（Feature Matching + Embedding Vector）
+- ✅ Neon PostgreSQL 整合與 pgvector 擴展
+- ✅ 自然語言推薦功能
+- ✅ 片單社交系統
+- ✅ 好友關係管理
+- ✅ 智能測驗系統
+- ✅ 趣味化 UI/UX
+
+### 規劃中 🚀
+
+- 🔄 **個人化推薦演算法優化**
+  - 基於使用者觀影歷史的協同過濾
+  - 時間感知推薦（週末 vs 平日）
+  
+- 🔄 **社群功能擴展**
+  - 影評討論區
+  - 主題片單（例如：「奧斯卡最佳影片」）
+  - 觀影挑戰活動
+  
+- 🔄 **AI 功能強化**
+  - 電影劇情摘要生成
+  - 個性化觀影報告
+  - 智能觀影時間建議
+
+---
+
+### Built with 💜 using BMAD Method™
+
+*展示 AI 代理團隊協作開發的無限可能*
+
+---
+
+[![Star History Chart](https://api.star-history.com/svg?repos=VictorHo1114/MovieIn_bmadProject&type=Date)](https://star-history.com/#VictorHo1114/MovieIn_bmadProject&Date)
+
+

@@ -28,6 +28,15 @@ export function RegisterForm() {
     setError(null);
 
     // --- 3. 客戶端驗證 (在地化為中文) ---
+    
+    // 驗證 Email 格式
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('電子郵件格式不正確，請輸入有效的電子郵件地址（例如：example@domain.com）。');
+      setIsLoading(false);
+      return;
+    }
+    
     if (password !== repeatPassword) {
       setError('新密碼與確認密碼不匹配，請檢查。'); // [在地化文本]
       setIsLoading(false);
@@ -60,6 +69,9 @@ export function RegisterForm() {
       // [優化] 錯誤處理 (在地化為中文)
       if (err.message && err.message.includes("Email already registered")) {
         setError('該電子郵件已被註冊，請直接登入。'); // [在地化文本]
+      } else if (err.message && (err.message.includes("value is not a valid email") || err.message.includes("email"))) {
+        // 處理後端的 email 格式驗證錯誤
+        setError('電子郵件格式不正確，請輸入有效的電子郵件地址（例如：example@domain.com）。');
       } else if (err.message) {
         setError(`錯誤: ${err.message}`); // 顯示詳細錯誤訊息
       } else {
