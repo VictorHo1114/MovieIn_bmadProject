@@ -7,31 +7,30 @@
 [![Neon](https://img.shields.io/badge/Database-Neon_PostgreSQL-00E699?logo=postgresql&logoColor=white)](https://neon.tech)
 [![Built with BMAD](https://img.shields.io/badge/Built%20with-BMAD%20Method-purple?logo=github)](https://github.com/bmadcode/BMAD-METHOD)
 
-> 🎉 **MovieIn** 不只是推薦電影，更是**電影愛好者的社交天堂**！透過 AI 智能推薦找到心儀電影，用觀影品味結交志同道合的影友，打造專屬你的電影社交圈。
 
-**⚡ 使用 [BMAD Method™](https://github.com/bmadcode/BMAD-METHOD) 打造** - 革命性的 Agentic Agile 開發方法，由 AI 代理團隊（分析師、架構師、產品經理、Scrum Master、開發者、QA）協作設計並實現這個全端平台。
+>**使用 [BMAD Method™](https://github.com/bmadcode/BMAD-METHOD) 打造** - 革命性的 Agentic Agile 開發方法，由 AI 代理團隊（分析師、架構師、產品經理、Scrum Master、開發者、QA）協作設計並實現這個全端平台。
 
 ---
 
-## 🎯 MovieIn 核心價值
+## MovieIn 核心價值
 
-### 🎬 為電影愛好者打造的社交娛樂平台
+### 為電影愛好者打造的社交娛樂平台
 
 **MovieIn 的使命：** 讓喜愛電影的人不再孤單觀影，透過共同的觀影品味建立真實連結。
 
 #### 三大核心體驗
 
-1. **🎪 趣味化推薦** 
+1. **趣味化推薦** 
    - 用自然語言表達心情：「今天想看點輕鬆搞笑的」
    - AI 秒懂你的需求，推薦最合適的電影
    - 不只是冰冷的演算法，而是懂你的觀影夥伴
 
-2. **👥 片單社交** 
+2. **片單社交** 
    - 分享你的觀影清單(Watchlist/Top10 List)，展現獨特品味
    - 找到和你口味相似的影友
    - 透過電影開啟話題，建立深度連結
 
-3. **🎮 娛樂互動** 
+3. **娛樂互動** 
    - 趣味測驗：探索你的電影人格
    - 排行榜：發現社群熱門電影
    - 評分分享：影響彼此的觀影選擇
@@ -41,38 +40,38 @@
  傳統困境 vs MovieIn 創新解決方案 
 
 一、
-**選擇疲勞、缺乏智慧推薦**：平台有數千部電影卻不知看什麼 
-**AI 智能推薦** Phase 3.6 混合推薦引擎，精準理解需求 
+- **選擇疲勞、缺乏智慧推薦**：平台有數千部電影卻不知看什麼
+- **AI 智能推薦** Phase 3.6 混合推薦引擎，精準理解需求 
 二、
-**孤單觀影**：市面上鮮少有電影為主題的交友社群Application 
-**片單交友**透過觀影品味 (Top10 List 與Watchlist 的交換與共享)找到知音影友 
+- **孤單觀影**：市面上鮮少有電影為主題的交友社群Application 
+- **片單交友**透過觀影品味 (Top10 List 與Watchlist 的交換與共享)找到知音影友 
 
 
-## ✨ 核心功能特色
+## 核心功能特色
 
-### 🎯 Phase 3.6 智能混合推薦系統
+### Phase 3.6 智能混合推薦系統
 
 **突破性的雙引擎推薦架構：**
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │          Phase 3.6 混合推薦引擎                      │
-│                                                      │
-│  ┌──────────────────┐      ┌───────────────────┐  │
-│  │ Feature Matching │      │ Embedding Vector  │  │
-│  │ Engine (Phase 1) │      │ Engine (Phase 3.6)│  │
-│  │                  │      │                   │  │
-│  │ • 類型匹配        │      │ • OpenAI Embedding│  │
-│  │ • 關鍵字匹配      │      │ • 語義相似度      │  │
-│  │ • 心情標籤匹配    │      │ • 深度理解語境    │  │
-│  └────────┬─────────┘      └─────────┬─────────┘  │
-│           │                          │             │
-│           └──────────┬───────────────┘             │
+│                                                     │
+│  ┌──────────────────┐      ┌───────────────────┐    │
+│  │ Feature Matching │      │ Embedding Vector  │    │
+│  │ Engine (Phase 1) │      │ Engine (Phase 3.6)│    │
+│  │                  │      │                   │    │
+│  │ • 類型匹配        │      │ • OpenAI Embedding│    │
+│  │ • 關鍵字匹配      │      │ • 語義相似度      │     │
+│  │ • 心情標籤匹配    │      │ • 深度理解語境    │     │
+│  └────────┬─────────┘      └─────────┬─────────┘    │
+│           │                          │              │
+│           └──────────┬───────────────┘              │
 │                      ▼                              │
-│           ┌──────────────────────┐                 │
-│           │   智能決策邏輯        │                 │
-│           │  (自動選擇最佳引擎)   │                 │
-│           └──────────────────────┘                 │
+│           ┌──────────────────────┐                  │
+│           │   智能決策邏輯        │                  │
+│           │  (自動選擇最佳引擎)   │                  │
+│           └──────────────────────┘                 │ 
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -98,7 +97,7 @@ else:
     return embedding_engine(natural_language_query)
 ```
 
-### 💬 自然語言對話式推薦
+### 自然語言對話式推薦
 
 **真正理解你的話：**
 ```
@@ -113,7 +112,7 @@ AI 解析：
 推薦：《可可夜總會》、《心靈奇旅》、《腦筋急轉彎》
 ```
 
-### 👥 片單社交 - 用電影交朋友
+### 片單社交 - 用電影交朋友
 
 #### 觀影清單分享
 - **個人化片單**：建立專屬的「想看清單」、「已看清單」
@@ -131,7 +130,7 @@ AI 解析：
 - **熱門討論**：參與最火熱的電影話題
 - **影友推薦**：接收來自好友的私人推薦
 
-### 🎮 趣味化娛樂體驗
+### 趣味化娛樂體驗
 
 #### 智能測驗系統
 - **電影人格測試**：透過問答了解你的觀影偏好
@@ -143,27 +142,27 @@ AI 解析：
 - **探索挑戰**：嘗試新類型電影獲得獎勵
 - **社群排名**：看看誰是最活躍的影評人
 
-### 🏷️ 增強特徵提取系統
+### 增強特徵提取系統
 - **心情標籤映射表**：70+ 標籤（Romantic, Thrilling, Dark, Uplifting, Adventurous...）
 - **關鍵字精準匹配**：30,000+ 電影關鍵字完整資料庫
 - **多維度分析**：類型 × 心情 × 關鍵字三維交叉分析
 
 ---
 
-## 🏗️ 技術架構
+## 技術架構
 
 ### 技術棧總覽
 
 #### 後端技術
-| 技術 | 版本 | 用途 |
-|------|------|------|
-| **FastAPI** | 0.119.1 | 高效能非同步 Python Web 框架 |
-| **Neon PostgreSQL** | Serverless | ⭐ **雲端 Serverless 資料庫**<br>• 30,000+ 部電影完整資料<br>• 自動擴展與休眠<br>• 超低延遲查詢 |
-| **SQLAlchemy** | 2.0.36 | ORM 資料庫抽象層 |
-| **OpenAI Embedding** | text-embedding-3-small | Phase 3.6 語義向量引擎 |
-| **Redis** | 5.0.1 | 推薦結果快取與 Session 管理 |
-| **Alembic** | 1.14.0 | 資料庫版本控制與遷移 |
-| **JWT + PassLib** | Latest | 使用者認證與授權 |
+
+**FastAPI** | 0.119.1 | 高效能非同步 Python Web 框架 |
+**Neon PostgreSQL** | Serverless | 
+**雲端 Serverless 資料庫** 1000+ 部電影完整資料、自動擴展與休眠、超低延遲查詢 |
+**SQLAlchemy** | 2.0.36 | ORM 資料庫抽象層 |
+**OpenAI Embedding** | text-embedding-3-small | Phase 3.6 語義向量引擎 |
+**Redis** | 5.0.1 | 推薦結果快取與 Session 管理 |
+**Alembic** | 1.14.0 | 資料庫版本控制與遷移 |
+**JWT + PassLib** | Latest | 使用者認證與授權 |
 
 #### 前端技術
 | 技術 | 版本 | 用途 |
@@ -175,409 +174,6 @@ AI 解析：
 | **ky** | 1.13.0 | 現代化 HTTP 客戶端 |
 | **TypeScript** | 5.x | 完整型別安全 |
 
-### 🗄️ Neon PostgreSQL - 資料庫核心
-
-**為什麼選擇 Neon？**
-
-```
-┌─────────────────────────────────────────────────────┐
-│            Neon Serverless PostgreSQL               │
-│                                                      │
-│  ✨ 核心優勢：                                       │
-│  • Serverless 架構 - 無伺服器管理負擔              │
-│  • 自動擴展 - 根據負載自動調整資源                  │
-│  • 按需付費 - 閒置時自動休眠節省成本                │
-│  • 極速查詢 - 全球 CDN 加速                         │
-│  • 分支功能 - 像 Git 一樣管理資料庫                 │
-└─────────────────────────────────────────────────────┘
-```
-
-#### 資料庫架構設計
-
-**核心資料表：**
-
-```sql
--- 電影資料表（30,000+ 筆記錄）
-movies
-  ├─ id (Primary Key)
-  ├─ title, overview, release_date
-  ├─ genres (Array) - 電影類型
-  ├─ keywords (Array) - 關鍵字標籤
-  ├─ mood_tags (Array) - 心情標籤
-  ├─ vote_average, vote_count - 評分數據
-  ├─ poster_path, backdrop_path - 視覺素材
-  └─ embedding_vector (1536 dimensions) - Phase 3.6 語義向量
-
--- 使用者資料表
-users
-  ├─ id (Primary Key)
-  ├─ username, email, hashed_password
-  ├─ movie_preferences (JSON) - 測驗結果
-  └─ created_at, updated_at
-
--- 觀影清單表
-watchlists
-  ├─ id (Primary Key)
-  ├─ user_id (Foreign Key → users)
-  ├─ movie_id (Foreign Key → movies)
-  ├─ status (想看/已看/收藏)
-  ├─ rating, review
-  └─ added_at
-
--- 好友關係表
-friendships
-  ├─ id (Primary Key)
-  ├─ user_id (Foreign Key → users)
-  ├─ friend_id (Foreign Key → users)
-  ├─ status (pending/accepted)
-  └─ created_at
-```
-
-#### Neon 特色應用
-
-1. **Embedding Vector 儲存**
-   ```sql
-   -- 利用 Neon 原生支援 PostgreSQL pgvector 擴展
-   CREATE EXTENSION vector;
-   
-   -- 儲存 OpenAI Embedding 向量
-   ALTER TABLE movies 
-   ADD COLUMN embedding_vector vector(1536);
-   
-   -- 高效相似度查詢
-   SELECT title, 
-          1 - (embedding_vector <=> query_vector) AS similarity
-   FROM movies
-   ORDER BY embedding_vector <=> query_vector
-   LIMIT 10;
-   ```
-
-2. **自動擴展能力**
-   - 高峰期（週末夜晚）：自動增加運算資源
-   - 離峰期（深夜凌晨）：自動休眠節省成本
-   - 無縫擴展：使用者無感知的性能提升
-
-3. **開發分支功能**
-   ```bash
-   # 像 Git 一樣管理資料庫
-   neon branches create dev-feature-xyz
-   neon branches create staging
-   neon branches merge dev-feature-xyz → main
-   ```
-
-### 系統架構圖
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    使用者介面層                          │
-│         Next.js 16 + React 19 + Tailwind CSS            │
-│                                                          │
-│  🏠 首頁：自然語言輸入 + 趣味標籤選擇                    │
-│  🔍 搜尋：智能電影搜尋與篩選                             │
-│  👤 個人：觀影清單 + 片單分享 + 影友互動                 │
-│  👥 社交：好友動態 + 共同興趣 + 評論互動                 │
-└────────────────┬────────────────────────────────────────┘
-                 │ HTTP/JSON (ky)
-                 │ API Base: http://127.0.0.1:8000
-┌────────────────┴────────────────────────────────────────┐
-│                    API 閘道層                            │
-│           FastAPI + CORS Middleware                      │
-│                                                          │
-│  /recommend         - Phase 3.6 混合推薦引擎             │
-│  /search            - 電影搜尋 API                       │
-│  /profile           - 使用者資料管理                     │
-│  /watchlist         - 觀影清單 CRUD                      │
-│  /friends           - 好友系統 API                       │
-│  /quiz              - 趣味測驗系統                       │
-│  /top10             - 社群排行榜                         │
-└────────────────┬────────────────────────────────────────┘
-                 │
-┌────────────────┴────────────────────────────────────────┐
-│                   核心服務層                             │
-│                                                          │
-│  ┌──────────────────────────────────────────┐          │
-│  │  Phase 3.6 混合推薦引擎                   │          │
-│  │  (simple_recommend.py)                    │          │
-│  │                                           │          │
-│  │   ┌─────────────┐      ┌──────────────┐ │          │
-│  │   │Feature Match│◄────►│Embedding     │ │          │
-│  │   │Engine       │      │Vector Engine │ │          │
-│  │   │(Phase 1-3)  │      │(Phase 3.6)   │ │          │
-│  │   └─────────────┘      └──────────────┘ │          │
-│  │           │                    │         │          │
-│  │           ▼                    ▼         │          │
-│  │   ┌──────────────────────────────────┐  │          │
-│  │   │   智能決策邏輯（自動選擇）        │  │          │
-│  │   └──────────────────────────────────┘  │          │
-│  └──────────────────────────────────────────┘          │
-│                                                          │
-│  ┌──────────────────────────────────────────┐          │
-│  │ 增強特徵提取服務                          │          │
-│  │ (enhanced_feature_extraction.py)          │          │
-│  │  • Mood Label 映射表（70+ 標籤）          │          │
-│  │  • Keyword 精準匹配                       │          │
-│  │  • 自然語言推斷                           │          │
-│  └──────────────────────────────────────────┘          │
-│                                                          │
-│  ┌──────────────────────────────────────────┐          │
-│  │ Embedding 向量服務 (Phase 3.6)            │          │
-│  │ (embedding_service.py)                    │          │
-│  │  • OpenAI text-embedding-3-small          │          │
-│  │  • 1536 維語義向量生成                    │          │
-│  │  • 餘弦相似度計算                         │          │
-│  └──────────────────────────────────────────┘          │
-│                                                          │
-│  ┌──────────────────────────────────────────┐          │
-│  │ 社交服務層                                │          │
-│  │  • 好友關係管理                           │          │
-│  │  • 片單分享與推薦                         │          │
-│  │  • 社群互動功能                           │          │
-│  └──────────────────────────────────────────┘          │
-└────────────────┬────────────────────────────────────────┘
-                 │
-┌────────────────┴────────────────────────────────────────┐
-│                   資料層                                 │
-│                                                          │
-│  ┌───────────────────────────────────────┐              │
-│  │   Neon Serverless PostgreSQL          │              │
-│  │   ⭐ 雲端 Serverless 資料庫            │              │
-│  │                                        │              │
-│  │   📊 資料表：                          │              │
-│  │   • movies (30,000+ 筆)                │              │
-│  │     - 完整電影資料                     │              │
-│  │     - embedding_vector (1536D)         │              │
-│  │   • users (使用者資料)                 │              │
-│  │   • watchlists (觀影清單)              │              │
-│  │   • friendships (好友關係)             │              │
-│  │   • quiz_results (測驗結果)            │              │
-│  │                                        │              │
-│  │   🚀 特色：                            │              │
-│  │   • pgvector 向量擴展                  │              │
-│  │   • 自動擴展 & 休眠                    │              │
-│  │   • 分支管理功能                       │              │
-│  └───────────────────────────────────────┘              │
-│                                                          │
-│  ┌─────────────┐   ┌──────────────┐                    │
-│  │Redis Cache  │   │JWT Auth      │                    │
-│  │• 推薦快取   │   │• 使用者認證  │                    │
-│  │• Session    │   │• Token 管理  │                    │
-│  └─────────────┘   └──────────────┘                    │
-└──────────────────────────────────────────────────────────┘
-```
-│  個人：觀看清單 + 評分 + 好友                            │
-└────────────────┬────────────────────────────────────────┘
-                 │ HTTP/JSON (ky)
-                 │ http://127.0.0.1:8000
-┌────────────────┴────────────────────────────────────────┐
-│                    API 閘道層                            │
-│              FastAPI + CORS Middleware                   │
-│                                                          │
-│  /recommend     - 智能推薦引擎                           │
-│  /search        - 電影搜尋                               │
-│  /profile       - 使用者資料                             │
-│  /watchlist     - 觀看清單                               │
-│  /quiz          - 測驗系統                               │
-│  /top10         - 排行榜                                 │
-└────────────────┬────────────────────────────────────────┘
-                 │
-┌────────────────┴────────────────────────────────────────┐
-│                   核心服務層                             │
-│                                                          │
-│  ┌──────────────────────────────────────────┐          │
-│  │   智能混合推薦引擎 (simple_recommend.py)  │          │
-│  │                                           │          │
-│  │   ┌─────────────┐      ┌──────────────┐ │          │
-│  │   │Feature Match│      │Embedding     │ │          │
-│  │   │Engine       │◄────►│Engine        │ │          │
-│  │   └─────────────┘      └──────────────┘ │          │
-│  │           │                    │         │          │
-│  │           ▼                    ▼         │          │
-│  │   ┌──────────────────────────────────┐  │          │
-│  │   │   決策邏輯（自動選擇引擎）        │  │          │
-│  │   └──────────────────────────────────┘  │          │
-│  └──────────────────────────────────────────┘          │
-│                                                          │
-│  ┌──────────────────────────────────────────┐          │
-│  │ 增強特徵提取 (enhanced_feature_extraction) │          │
-│  │  - Mood Label 映射表                      │          │
-│  │  - Keyword 精準匹配                       │          │
-│  │  - 自然語言推斷                           │          │
-│  └──────────────────────────────────────────┘          │
-│                                                          │
-│  ┌──────────────────────────────────────────┐          │
-│  │ Embedding 服務 (embedding_service.py)     │          │
-│  │  - OpenAI text-embedding-3-small          │          │
-│  │  - 向量相似度計算                         │          │
-│  └──────────────────────────────────────────┘          │
-└────────────────┬────────────────────────────────────────┘
-                 │
-┌────────────────┴────────────────────────────────────────┐
-│                   資料存取層                             │
-│                                                          │
-│  PostgreSQL (Neon)   │   Redis Cache   │   Auth JWT    │
-│  - movies            │   - 推薦快取    │   - 使用者認證 │
-│  - users             │   - 查詢快取    │   - Session   │
-│  - watchlists        │                 │                │
-│  - friendships       │                 │                │
-└──────────────────────────────────────────────────────────┘
-```
-
-### Phase 3.6 推薦系統資料流程
-
-#### 場景一：自然語言推薦（使用 Embedding Vector）
-
-```
-👤 使用者：「週末想和家人看點溫馨感人的動畫片」
-         │
-         ▼
-🎨 前端 (HomeClient.tsx)
-   • 捕捉使用者輸入
-   • 選擇的心情標籤：Heartwarming
-         │
-         ▼
-📡 API 層 (POST /recommend)
-   {
-     "user_input": "週末想和家人看點溫馨感人的動畫片",
-     "mood_labels": ["Heartwarming"],
-     "randomness": 0.3
-   }
-         │
-         ▼
-🧠 特徵提取服務 (enhanced_feature_extraction.py)
-   ✓ 解析自然語言
-   ✓ 提取：Family, Heartwarming, Emotional
-   ✓ 識別類型：Animation
-         │
-         ▼
-⚙️ Phase 3.6 推薦引擎決策 (simple_recommend.py)
-   ┌─────────────────────────────────────┐
-   │ 分析：模糊描述 + 情境語境           │
-   │ 決策：使用 Embedding Vector Engine  │
-   └─────────────────────────────────────┘
-         │
-         ▼
-🔮 Embedding Vector 處理 (embedding_service.py)
-   1. 將查詢轉換為向量
-      query_vector = openai.embed("溫馨感人的家庭動畫片")
-   
-   2. 從 Neon PostgreSQL 查詢相似電影
-      SELECT title, overview, genres,
-             1 - (embedding_vector <=> query_vector) AS similarity
-      FROM movies
-      WHERE genres @> ARRAY['Animation']
-      ORDER BY embedding_vector <=> query_vector
-      LIMIT 20
-   
-   3. 計算語義相似度分數
-         │
-         ▼
-🗄️ Neon PostgreSQL
-   • 使用 pgvector 擴展快速向量查詢
-   • 返回前 20 部最相似電影
-   • 查詢時間 < 50ms
-         │
-         ▼
-📊 結果排序與多樣性調整
-   • 應用 randomness 參數 (0.3)
-   • 混入部分探索性推薦
-   • 確保推薦多樣性
-         │
-         ▼
-✅ 返回推薦結果
-   [
-     { title: "可可夜總會", similarity: 0.92 },
-     { title: "腦筋急轉彎", similarity: 0.89 },
-     { title: "心靈奇旅", similarity: 0.87 },
-     ...
-   ]
-         │
-         ▼
-🎬 前端渲染電影卡片
-   • 顯示海報、標題、簡介
-   • 提供加入觀影清單按鈕
-   • 顯示相似度評分
-```
-
-#### 場景二：片單社交互動流程
-
-```
-👤 使用者 A：想找口味相似的影友
-         │
-         ▼
-📋 查看自己的觀影清單
-   GET /watchlist?user_id=123
-         │
-         ▼
-🔍 系統分析使用者品味
-   • 統計最愛類型：Animation (40%), Sci-Fi (30%)
-   • 心情偏好：Uplifting, Adventurous
-   • 平均評分：偏好高分電影 (>8.0)
-         │
-         ▼
-🤝 推薦潛在影友 (好友推薦系統)
-   SELECT u.*, 
-          COUNT(CASE WHEN w1.movie_id = w2.movie_id THEN 1 END) as common_movies
-   FROM users u
-   JOIN watchlists w2 ON u.id = w2.user_id
-   WHERE EXISTS (
-     SELECT 1 FROM watchlists w1 
-     WHERE w1.user_id = 123 
-     AND w1.movie_id = w2.movie_id
-   )
-   GROUP BY u.id
-   ORDER BY common_movies DESC
-   LIMIT 10
-         │
-         ▼
-👥 顯示潛在影友清單
-   「用戶 B 和你有 15 部共同喜愛的電影！」
-         │
-         ▼
-💌 發送好友邀請
-   POST /friends/invite
-   { friend_id: 456 }
-         │
-         ▼
-🔔 通知系統
-   推播通知給使用者 B
-         │
-         ▼
-✅ 建立好友關係
-   • 可以查看彼此的觀影清單
-   • 互相推薦電影
-   • 評論互動
-```
-
-#### 場景三：Feature Matching 推薦流程
-
-```
-👤 使用者：選擇標籤「Action + Thrilling + Dark」
-         │
-         ▼
-⚙️ Phase 3.6 推薦引擎決策
-   ┌─────────────────────────────────────┐
-   │ 分析：明確的特徵標籤                │
-   │ 決策：使用 Feature Matching Engine  │
-   └─────────────────────────────────────┘
-         │
-         ▼
-🎯 Feature Matching 查詢 (Neon PostgreSQL)
-   SELECT * FROM movies
-   WHERE genres @> ARRAY['Action']
-   AND mood_tags && ARRAY['Thrilling', 'Dark']
-   AND vote_average > 7.0
-   ORDER BY vote_count DESC, vote_average DESC
-   LIMIT 20
-         │
-         ▼
-✅ 返回精準匹配結果
-   [黑暗騎士、全面啟動、無間道...]
-```
-
----
-
-## 🎯 使用 BMAD Method™ 開發
-
 ### 什麼是 BMAD Method？
 
 **BMAD (Breakthrough Method of Agile AI-Driven Development)** 是一個革命性的 AI 代理協作開發框架，透過專業化的 AI 代理團隊進行全生命週期軟體開發。
@@ -586,7 +182,7 @@ friendships
 
 本專案完全採用 BMAD Method 進行開發，整個過程展示了 AI 代理團隊協作的強大能力：
 
-#### 📋 規劃階段（Planning Phase）
+#### 規劃階段（Planning Phase）
 
 1. **分析師代理 (Analyst Agent)** 
    - 需求訪談與分析
@@ -603,7 +199,7 @@ friendships
    - 技術選型與評估
    - 建立 `docs/architecture.md`
 
-#### 🏗️ 開發階段（Development Phase）
+#### 開發階段（Development Phase）
 
 4. **Scrum Master 代理**
    - 將 PRD 與架構文件拆分為開發故事
@@ -656,7 +252,7 @@ bmad-method/
 
 ---
 
-## 🚀 快速開始
+## 快速開始
 
 ### 環境需求
 
@@ -722,7 +318,7 @@ npm run dev
 
 ---
 
-## 📖 文件
+## 文件
 
 - **[架構文件](docs/architecture.md)** - 完整的 brownfield 架構分析
 - **[快速開始](docs/QUICKSTART.md)** - 詳細安裝與設定指南
@@ -732,9 +328,9 @@ npm run dev
 
 ---
 
-## 🎨 專案亮點與創新
+## 專案亮點與創新
 
-### 🌟 核心技術創新
+### 核心技術創新
 
 #### 1. Phase 3.6 智能決策邏輯
 
@@ -825,7 +421,7 @@ MOOD_LABEL_TO_DB_TAGS = {
 
 
 
-## 🤝 貢獻
+## 貢獻
 
 歡迎貢獻！請查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解如何參與。
 
@@ -839,11 +435,8 @@ MOOD_LABEL_TO_DB_TAGS = {
 
 ---
 
-## 📝 授權
 
----
-
-## 📖 完整文件
+## 完整文件
 
 - **[架構文件](docs/architecture.md)** - 完整的 Brownfield 架構分析（Winston 架構師撰寫）
 - **[快速開始指南](docs/QUICKSTART.md)** - 詳細安裝與設定教學
@@ -855,29 +448,18 @@ MOOD_LABEL_TO_DB_TAGS = {
 
 ---
 
-## 🤝 參與貢獻
+## 參與貢獻
 
 歡迎所有形式的貢獻！無論是功能建議、Bug 回報、文件改進或程式碼貢獻。
 
-### 貢獻流程
 
-1. **Fork 本專案**
-2. **建立功能分支** (`git checkout -b feature/amazing-feature`)
-3. **提交變更** (`git commit -m '新增：超讚的新功能'`)
-4. **推送到分支** (`git push origin feature/amazing-feature`)
-5. **開啟 Pull Request**
-
-詳見 [CONTRIBUTING.md](CONTRIBUTING.md) 了解完整貢獻指南。
-
----
-
-## 📝 授權
+## 授權
 
 本專案採用 **MIT 授權** - 詳見 [LICENSE](LICENSE) 檔案
 
 ---
 
-## 🙏 致謝
+## 致謝
 
 ### 核心技術夥伴
 
@@ -900,7 +482,7 @@ MOOD_LABEL_TO_DB_TAGS = {
 
 ---
 
-## 📧 聯絡方式
+## 聯絡方式
 
 **Victor Ho** - 專案創建者與維護者
 
@@ -908,15 +490,15 @@ MOOD_LABEL_TO_DB_TAGS = {
 - 專案連結: [MovieIn_bmadProject](https://github.com/VictorHo1114/MovieIn_bmadProject)
 
 有任何問題或建議，歡迎：
-- 📬 開啟 [Issue](https://github.com/VictorHo1114/MovieIn_bmadProject/issues)
-- 💬 發起 [Discussion](https://github.com/VictorHo1114/MovieIn_bmadProject/discussions)
-- ⭐ 給專案一個星星支持！
+- 開啟 [Issue](https://github.com/VictorHo1114/MovieIn_bmadProject/issues)
+- 發起 [Discussion](https://github.com/VictorHo1114/MovieIn_bmadProject/discussions)
+- 給專案一個星星支持！
 
 ---
 
-## 🎬 專案展望
+## 專案展望
 
-### 已完成 ✅
+### 已完成 
 
 - ✅ Phase 3.6 混合推薦系統（Feature Matching + Embedding Vector）
 - ✅ Neon PostgreSQL 整合與 pgvector 擴展
@@ -926,18 +508,18 @@ MOOD_LABEL_TO_DB_TAGS = {
 - ✅ 智能測驗系統
 - ✅ 趣味化 UI/UX
 
-### 規劃中 🚀
+### 規劃中 
 
-- 🔄 **個人化推薦演算法優化**
+- **個人化推薦演算法優化**
   - 基於使用者觀影歷史的協同過濾
   - 時間感知推薦（週末 vs 平日）
   
-- 🔄 **社群功能擴展**
+- **社群功能擴展**
   - 影評討論區
   - 主題片單（例如：「奧斯卡最佳影片」）
   - 觀影挑戰活動
   
-- 🔄 **AI 功能強化**
+- **AI 功能強化**
   - 電影劇情摘要生成
   - 個性化觀影報告
   - 智能觀影時間建議
