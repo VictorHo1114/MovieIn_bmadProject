@@ -1,0 +1,88 @@
+# Coverage.py 配置文件
+# Coverage Configuration File
+
+[run]
+# 源代碼目錄
+source = app/services
+
+# 忽略的文件/目錄
+omit =
+    */tests/*
+    */__pycache__/*
+    */venv/*
+    */.venv/*
+    */env/*
+    */site-packages/*
+    */dist-packages/*
+    test_*.py
+    *_test.py
+    conftest.py
+
+# 分支覆蓋
+branch = True
+
+# 並行模式
+parallel = False
+
+[report]
+# 精度
+precision = 2
+
+# 顯示缺失的行
+show_missing = True
+
+# 跳過空文件
+skip_empty = True
+
+# 排除的行（不計入覆蓋率）
+exclude_lines =
+    # 標準排除
+    pragma: no cover
+    
+    # 防禦性編程
+    def __repr__
+    def __str__
+    
+    # 異常處理
+    raise AssertionError
+    raise NotImplementedError
+    
+    # 調試代碼
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    
+    # 抽象方法
+    @abstractmethod
+    @abc.abstractmethod
+    
+    # 類型檢查
+    if False:
+    if typing.TYPE_CHECKING:
+    
+    # Pass 語句
+    pass
+    
+    # 省略號
+    \.\.\.
+
+# 忽略錯誤
+ignore_errors = False
+
+# 排序
+sort = Cover
+
+[html]
+# HTML 報告目錄
+directory = htmlcov
+
+# 標題
+title = Recommendation System Test Coverage Report
+
+[xml]
+# XML 報告文件
+output = coverage.xml
+
+[json]
+# JSON 報告文件
+output = coverage.json
+show_contexts = True

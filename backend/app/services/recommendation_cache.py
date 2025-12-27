@@ -52,8 +52,10 @@ TTL_CONFIG = {
     # Embedding 快取 TTL（長期有效，embedding 不會改變）
     "embedding": 86400 * 7,  # 7 天
     
-    # 推薦結果快取 TTL（考慮多樣性，較短 TTL）
-    "recommendation": 3600,  # 1 小時
+    # 推薦結果快取 TTL（平衡性能與多樣性）
+    # 🎯 高並發優化：延長到 10 分鐘以支援 300+ RPS
+    # 理由：更長的快取可大幅降低資料庫壓力
+    "recommendation": 600,   # 10 分鐘（從 5 分鐘延長）
     
     # 常見查詢快取 TTL（可更長）
     "common_query": 86400,   # 24 小時

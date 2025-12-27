@@ -1,0 +1,67 @@
+{
+  "queries": [
+    {
+      "id": "q1",
+      "natural_query": "難過的時候適合看什麼電影",
+      "mood_labels": ["heartwarming", "uplifting"],
+      "genres": ["Drama"],
+      "year_ranges": null,
+      "expected_scenario": "both",
+      "description": "中文自然語言 + Mood 標籤（無衝突）"
+    },
+    {
+      "id": "q2",
+      "natural_query": null,
+      "mood_labels": ["emotional", "heartwarming"],
+      "genres": [],
+      "year_ranges": null,
+      "expected_scenario": "mood_only",
+      "description": "僅 Mood 標籤（Journey 關係）"
+    },
+    {
+      "id": "q3",
+      "natural_query": "I want a funny movie",
+      "mood_labels": [],
+      "genres": ["Comedy"],
+      "year_ranges": null,
+      "expected_scenario": "nl_only",
+      "description": "英文自然語言 + Genre"
+    },
+    {
+      "id": "q4",
+      "natural_query": "想看歡樂有趣的電影",
+      "mood_labels": ["dark", "gritty"],
+      "genres": [],
+      "year_ranges": null,
+      "expected_scenario": "both",
+      "conflict_detected": true,
+      "description": "情感衝突：正面自然語言 vs 負面 Mood"
+    },
+    {
+      "id": "q5",
+      "natural_query": "A heartwarming family movie",
+      "mood_labels": ["heartwarming", "uplifting"],
+      "genres": ["Drama", "Family"],
+      "year_ranges": [[1990, 2000]],
+      "expected_scenario": "both",
+      "description": "完整查詢（包含年份範圍）"
+    }
+  ],
+  "mood_combinations": [
+    {
+      "moods": ["emotional", "heartwarming"],
+      "expected_type": "journey",
+      "description": "悲傷到溫暖的轉變"
+    },
+    {
+      "moods": ["dark", "lighthearted"],
+      "expected_type": "paradox",
+      "description": "黑暗喜劇矛盾"
+    },
+    {
+      "moods": ["intense", "thrilling"],
+      "expected_type": "intensification",
+      "description": "強化緊張感"
+    }
+  ]
+}

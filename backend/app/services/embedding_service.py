@@ -26,15 +26,16 @@ def get_embedding(text: str, use_cache: bool = True) -> List[float]:
     
     成本：~$0.00002 per 1K tokens
     
-    P0 優化：
+    P0 優化（選項 C 啟用）：
     - 快取命中：0ms（記憶體）/ ~2ms（Redis）
     - 快取未命中：~100-150ms（OpenAI API）
     - 預期快取命中率：> 80%
     - 成本節省：98%（重複查詢不計費）
+    - ⭐ P1 強化：強制啟用快取以避免重複 API 調用
     
     Args:
         text: 要計算 embedding 的文本
-        use_cache: 是否使用快取（預設 True）
+        use_cache: 是否使用快取（預設 True，P1 強制啟用）
     
     Returns:
         List[float]: Embedding 向量（1536 維）
@@ -42,6 +43,9 @@ def get_embedding(text: str, use_cache: bool = True) -> List[float]:
     if not text or not text.strip():
         # 空文本返回零向量
         return [0.0] * EMBEDDING_DIM
+    
+    # P1 優化：強制啟用快取（即使傳入 False 也使用）
+    use_cache = True  # 強制快取，避免重複 API 調用
     
     # P0 優化：查詢快取
     if use_cache:

@@ -1,0 +1,72 @@
+[
+  {
+    "id": 550,
+    "tmdb_id": 550,
+    "title": "It's a Wonderful Life",
+    "title_zh": "風雲人物",
+    "overview": "A heartwarming story about a man who discovers the value of life when he sees what the world would be like without him.",
+    "genres": ["剧情"],
+    "mood_tags": ["heartwarming", "uplifting", "emotional", "inspiring"],
+    "keywords": ["family", "hope", "redemption", "christmas", "angel"],
+    "vote_average": 8.5,
+    "vote_count": 5000,
+    "release_date": "1946-12-20",
+    "poster_path": "/poster_550.jpg"
+  },
+  {
+    "id": 551,
+    "tmdb_id": 551,
+    "title": "The Dark Knight",
+    "title_zh": "黑暗騎士",
+    "overview": "Batman faces his greatest challenge as the Joker wreaks havoc on Gotham City.",
+    "genres": ["动作", "犯罪", "剧情"],
+    "mood_tags": ["dark", "gritty", "intense", "thrilling"],
+    "keywords": ["superhero", "crime", "justice", "chaos", "gotham"],
+    "vote_average": 9.0,
+    "vote_count": 25000,
+    "release_date": "2008-07-18",
+    "poster_path": "/poster_551.jpg"
+  },
+  {
+    "id": 552,
+    "tmdb_id": 552,
+    "title": "Amélie",
+    "title_zh": "艾蜜莉的異想世界",
+    "overview": "A shy waitress decides to change the lives of those around her for the better.",
+    "genres": ["喜剧", "爱情"],
+    "mood_tags": ["whimsical", "lighthearted", "romantic", "feel-good"],
+    "keywords": ["paris", "love", "imagination", "quirky", "colorful"],
+    "vote_average": 8.3,
+    "vote_count": 7000,
+    "release_date": "2001-04-25",
+    "poster_path": "/poster_552.jpg"
+  },
+  {
+    "id": 553,
+    "tmdb_id": 553,
+    "title": "Schindler's List",
+    "title_zh": "辛德勒的名單",
+    "overview": "The true story of a German businessman who saved thousands of Jews during the Holocaust.",
+    "genres": ["剧情", "历史"],
+    "mood_tags": ["emotional", "powerful", "thought-provoking", "heartbreaking"],
+    "keywords": ["holocaust", "war", "humanity", "courage", "historical"],
+    "vote_average": 8.9,
+    "vote_count": 12000,
+    "release_date": "1993-12-15",
+    "poster_path": "/poster_553.jpg"
+  },
+  {
+    "id": 554,
+    "tmdb_id": 554,
+    "title": "Spirited Away",
+    "title_zh": "神隱少女",
+    "overview": "A young girl enters a magical world to save her parents.",
+    "genres": ["动画", "奇幻", "家庭"],
+    "mood_tags": ["magical", "whimsical", "fantastical", "dreamy"],
+    "keywords": ["ghibli", "magic", "adventure", "spirits", "coming-of-age"],
+    "vote_average": 8.6,
+    "vote_count": 15000,
+    "release_date": "2001-07-20",
+    "poster_path": "/poster_554.jpg"
+  }
+]

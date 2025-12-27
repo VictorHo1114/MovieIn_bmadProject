@@ -1,0 +1,44 @@
+{
+  "embeddings": {
+    "heartwarming_story": {
+      "text": "A heartwarming story about family and love",
+      "vector": "// 1536 維向量（此處省略，實際測試時使用 [0.5] * 1536）",
+      "dimension": 1536,
+      "model": "text-embedding-3-small"
+    },
+    "dark_thriller": {
+      "text": "A dark and intense psychological thriller",
+      "vector": "// 1536 維向量",
+      "dimension": 1536,
+      "model": "text-embedding-3-small"
+    },
+    "romantic_comedy": {
+      "text": "A lighthearted romantic comedy with humor",
+      "vector": "// 1536 維向量",
+      "dimension": 1536,
+      "model": "text-embedding-3-small"
+    },
+    "action_adventure": {
+      "text": "An exciting action-packed adventure film",
+      "vector": "// 1536 維向量",
+      "dimension": 1536,
+      "model": "text-embedding-3-small"
+    }
+  },
+  "similarity_pairs": [
+    {
+      "text1": "heartwarming_story",
+      "text2": "heartwarming_story",
+      "expected_similarity": 1.0,
+      "description": "相同向量的相似度應為 1.0"
+    },
+    {
+      "text1": "heartwarming_story",
+      "text2": "dark_thriller",
+      "expected_similarity": 0.3,
+      "description": "不同情緒的電影相似度較低",
+      "tolerance": 0.2
+    }
+  ],
+  "note": "實際測試時，向量使用 Python 列表: [0.1, 0.2, ..., 0.5] (1536 個元素)"
+}

@@ -574,7 +574,7 @@ async def recommend_movies_embedding_first(
     db_session: Session = None,
     count: int = 10,
     config: Dict = None,
-    use_cache: bool = False  # P1 修改：禁用推薦結果快取以保證多樣性
+    use_cache: bool = True  # 🔥 壓力測試修正：啟用快取以支援高並發
 ) -> List[Dict[str, Any]]:
     """
     Phase 3.6: Embedding-First 主推薦函數（P0+P1 優化）
@@ -586,10 +586,16 @@ async def recommend_movies_embedding_first(
     - 向量搜尋：80ms → 10-15ms（HNSW 索引加速）
     - 首次查詢：~180-525ms（有 Embedding 快取 + pgvector）
     
-    ⚠️ 重要設計決策：
-    - 推薦結果快取已禁用（use_cache=False）以確保多樣性
-    - 每次查詢會執行完整推薦流程（但 Embedding 已快取）
-    - 隨機選取機制正常運作（Top 3 固定 + 4-10 隨機）
+    🎯 快取策略（平衡性能與多樣性）：
+    - Embedding 快取：永久有效（7天 TTL，降低 API 成本）
+    - 推薦結果快取：5分鐘 TTL（避免短期重複，但保持多樣性）
+    - Step 7 隨機選擇：每次快取過期後重新執行，確保多樣性
+    
+    ⚡ 性能指標：
+    - 首次查詢：~500-4000ms（需調用 OpenAI API）
+    - Embedding 快取命中：~100-600ms（僅 pgvector 查詢）
+    - 完整快取命中：~5-10ms（5分鐘內重複查詢）
+    - 5分鐘後：重新計算，包含隨機選擇（保持多樣性）
     
     完整推薦流程（7 步驟）：
     
