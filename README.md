@@ -528,10 +528,3 @@ MOOD_LABEL_TO_DB_TAGS = {
 
 ### Built with 💜 using BMAD Method™
 
-*展示 AI 代理團隊協作開發的無限可能*
-
----
-
-[![Star History Chart](https://api.star-history.com/svg?repos=VictorHo1114/MovieIn_bmadProject&type=Date)](https://star-history.com/#VictorHo1114/MovieIn_bmadProject&Date)
-
-
